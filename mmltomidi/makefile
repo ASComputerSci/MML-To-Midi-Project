@@ -1,5 +1,6 @@
 BUILD_DIR = ./build
 STD = -std=c99
+OPT = -Og
 EXE = mmltomidi
 
 $(EXE): main.o y.tab.o lex.yy.o
