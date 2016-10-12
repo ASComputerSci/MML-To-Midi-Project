@@ -1,4 +1,5 @@
 BUILD_DIR = ./build
+TEST_DIR = ./test
 STD = -std=c99
 OPT = -Og
 EXE = mmltomidi
@@ -21,7 +22,13 @@ lex.yy.c: lex.l y.tab.h
 y.tab.c y.tab.h: yacc.y
 	yacc -d -o $(BUILD_DIR)/y.tab.c yacc.y
 
+
+test_main: $(TEST_DIR)/test_main.c
+	gcc -o $(BUILD_DIR)/test_main $(TEST_DIR)/test_main.c
+	
+
 .PHONY: clean
+
 clean:
 	rm -f $(BUILD_DIR)/$(EXE)
 	rm -f $(BUILD_DIR)/*.o

@@ -1,7 +1,8 @@
-#include "main.h"
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
 #include <stdbool.h>
+#include <unistd.h>
+#include "main.h"
 
 bool callValid(int argc, char *argv[]) {
 	if ((argc < 2) || (argc > 4)) {
@@ -9,15 +10,37 @@ bool callValid(int argc, char *argv[]) {
 	}
 	
 	if (strcmp(argv[1], "-o") == 0) {
-		//Test in & out file existence and access
+		if (!access(argv[2], F_OK)) {
+			fprintf(stderr, "Output file already exists\n");
+			
+			return false;
+		}
 		
-	} else {
-		//Test in & out file existence and access	
+		if (access(argv[3], F_OK | R_OK)) {
+			fprintf(stderr, "Input file cannot be accessed\n");
+			
+			return false;
+		}
+		
+	} else if (strcmp(argv[2], "-o") == 0) {
+		if (access(argv[1], F_OK | R_OK)) {
+			fprintf(stderr, "Input file cannot be accessed\n");
+			
+			return false;
+		}
+	
+		if (!access(argv[3], F_OK)) {
+			fprintf(stderr, "Output file already exists\n");
+			
+			return false;
+		}
 		
 	}
 	
 	return true;
 }
+
+#ifndef UNIT_TESTING
 
 int main(int argc, char *argv[]) {
 	if (!callValid(argc, argv)) {
@@ -25,8 +48,8 @@ int main(int argc, char *argv[]) {
 		
 		return 0;
 	}
-	
-	
 
 	return 0;
 }
+
+#endif
