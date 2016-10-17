@@ -5,6 +5,8 @@
 #include "main.h"
 
 bool callValid(int argc, char *argv[]) {
+	//Checks argument syntax is correct & files exist
+
 	if ((argc < 2) || (argc > 4)) {
 		return false;
 	}
@@ -35,6 +37,18 @@ bool callValid(int argc, char *argv[]) {
 			return false;
 		}
 		
+	} else {
+		if (access(argv[1], F_OK | R_OK)) {
+			fprintf(stderr, "Input file cannot be accessed\n");
+			
+			return false;
+		}
+	
+		if (!access("output.midi", F_OK)) {
+			fprintf(stderr, "output.midi already exists\n");
+			
+			return false;
+		}
 	}
 	
 	return true;
@@ -46,8 +60,10 @@ int main(int argc, char *argv[]) {
 	if (!callValid(argc, argv)) {
 		fprintf(stderr, "Usage: mmltomidi [-o output_path] [file]\n");
 		
-		return 0;
+		return 1;
 	}
+	
+	
 
 	return 0;
 }

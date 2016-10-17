@@ -17,20 +17,19 @@ lex.yy.o: lex.yy.c
 	gcc $(STD) -c -o $(BUILD_DIR)/lex.yy.o $(BUILD_DIR)/lex.yy.c
 	
 lex.yy.c: lex.l y.tab.h
-	lex -o $(BUILD_DIR)/lex.yy.c lex.l
+	flex -o $(BUILD_DIR)/lex.yy.c lex.l
 	
 y.tab.c y.tab.h: yacc.y
-	yacc -d -o $(BUILD_DIR)/y.tab.c yacc.y
-
+	bison -d -o $(BUILD_DIR)/y.tab.c yacc.y
 
 test_main: $(TEST_DIR)/test_main.c
-	gcc -o $(BUILD_DIR)/test_main $(TEST_DIR)/test_main.c
-	
+	gcc -o $(BUILD_DIR)/test_main $(TEST_DIR)/test_main.c	
 
 .PHONY: clean
 
 clean:
 	rm -f $(BUILD_DIR)/$(EXE)
+	rm -f $(BUILD_DIR)/test_main
 	rm -f $(BUILD_DIR)/*.o
 	rm -f $(BUILD_DIR)/*.c
 	rm -f $(BUILD_DIR)/*.h
