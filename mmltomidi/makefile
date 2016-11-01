@@ -1,5 +1,5 @@
 BUILD_DIR = ./build
-TEST_DIR = ./test
+TEST_DIR = ./unit_tests
 STD = -std=c99
 OPT = -Og
 EXE = mmltomidi
@@ -17,13 +17,13 @@ lex.yy.o: lex.yy.c
 	gcc $(STD) -c -o $(BUILD_DIR)/lex.yy.o $(BUILD_DIR)/lex.yy.c
 	
 lex.yy.c: lex.l y.tab.h
-	flex -o $(BUILD_DIR)/lex.yy.c lex.l
+	lex -o $(BUILD_DIR)/lex.yy.c lex.l
 	
 y.tab.c y.tab.h: yacc.y
-	bison -d -o $(BUILD_DIR)/y.tab.c yacc.y
+	yacc -d -o $(BUILD_DIR)/y.tab.c yacc.y
 
 test_main: $(TEST_DIR)/test_main.c
-	gcc -o $(BUILD_DIR)/test_main $(TEST_DIR)/test_main.c	
+	gcc $(STD) -o $(BUILD_DIR)/test_main $(TEST_DIR)/test_main.c	
 
 .PHONY: clean
 

@@ -4,51 +4,52 @@
 #include <unistd.h>
 #include "main.h"
 
-bool callValid(int argc, char *argv[]) {
-	//Checks argument syntax is correct & files exist
+void printError(char *s) {
+#ifndef UNIT_TESTING
+	fprintf(stderr, s);
+#endif
+}
 
-	if ((argc < 2) || (argc > 4)) {
+bool callValid(int argc, char *argv[]) {
+	//Checks calling syntax is correct & files exist
+	//Currently does not check if the input is a directory
+
+	if ((argc != 2) && (argc != 4)) {
+		printError("Invalid number of arguments\n");
+	
 		return false;
 	}
 	
-	if (strcmp(argv[1], "-o") == 0) {
-		if (!access(argv[2], F_OK)) {
-			fprintf(stderr, "Output file already exists\n");
-			
-			return false;
-		}
-		
-		if (access(argv[3], F_OK | R_OK)) {
-			fprintf(stderr, "Input file cannot be accessed\n");
-			
-			return false;
-		}
+	char inPathIndex = 0;
+	char outPathIndex = 0;
+	
+	if (argc == 2) {
+		inPathIndex = 1;
+	
+	} else if (strcmp(argv[1], "-o") == 0) {
+		inPathIndex = 3;
+		outPathIndex = 2;
 		
 	} else if (strcmp(argv[2], "-o") == 0) {
-		if (access(argv[1], F_OK | R_OK)) {
-			fprintf(stderr, "Input file cannot be accessed\n");
-			
-			return false;
-		}
-	
-		if (!access(argv[3], F_OK)) {
-			fprintf(stderr, "Output file already exists\n");
-			
-			return false;
-		}
+		inPathIndex = 1;
+		outPathIndex = 3;
 		
 	} else {
-		if (access(argv[1], F_OK | R_OK)) {
-			fprintf(stderr, "Input file cannot be accessed\n");
-			
-			return false;
-		}
+		printError("-o switch missing\n");
+		
+		return false;
+	}
 	
-		if (!access("output.midi", F_OK)) {
-			fprintf(stderr, "output.midi already exists\n");
-			
-			return false;
-		}
+	if ((inPathIndex != 0) && (access(argv[inPathIndex], F_OK | R_OK))) {
+		printError("Input file cannot be accessed\n");
+		
+		return false;
+	}
+
+	if ((outPathIndex != 0) && (!access(argv[outPathIndex], F_OK))) {
+		printError("Output file already exists\n");
+		
+		return false;
 	}
 	
 	return true;
@@ -58,7 +59,7 @@ bool callValid(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
 	if (!callValid(argc, argv)) {
-		fprintf(stderr, "Usage: mmltomidi [-o output_path] [file]\n");
+		printError("Usage: mmltomidi [-o output_path] [file]\n");
 		
 		return 1;
 	}
