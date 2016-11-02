@@ -22,10 +22,6 @@ bool testCallValid() {
 					   4, {"mmltomidi", "-o", "a", "."}, true,
 					   4, {"mmltomidi", "-o", ".", "a"}, false,
 					   4, {"mmltomidi", "-o", ".", "."}, false,
-					   4, {"mmltomidi", "a", "-o", "a"}, false,
-					   4, {"mmltomidi", "a", "-o", "."}, false,
-					   4, {"mmltomidi", ".", "-o", "a"}, true,
-					   4, {"mmltomidi", ".", "-o", "."}, false
 	};
 	
 	for (int i = 0; i < sizeof(testArgList)/sizeof(struct testArgs); i++) {

@@ -2,11 +2,14 @@
 #include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
+
 #include "main.h"
+#include "lex.yy.c"
+#include "y.tab.c"
 
 void printError(char *s) {
 #ifndef UNIT_TESTING
-	fprintf(stderr, s);
+	fprintf(stderr, "%s\n", s);
 #endif
 }
 
@@ -15,7 +18,7 @@ bool callValid(int argc, char *argv[]) {
 	//Currently does not check if the input is a directory
 
 	if ((argc != 2) && (argc != 4)) {
-		printError("Invalid number of arguments\n");
+		printError("Invalid number of arguments");
 	
 		return false;
 	}
@@ -30,24 +33,20 @@ bool callValid(int argc, char *argv[]) {
 		inPathIndex = 3;
 		outPathIndex = 2;
 		
-	} else if (strcmp(argv[2], "-o") == 0) {
-		inPathIndex = 1;
-		outPathIndex = 3;
-		
 	} else {
-		printError("-o switch missing\n");
+		printError("-o switch missing");
 		
 		return false;
 	}
 	
 	if ((inPathIndex != 0) && (access(argv[inPathIndex], F_OK | R_OK))) {
-		printError("Input file cannot be accessed\n");
+		printError("Input file cannot be accessed");
 		
 		return false;
 	}
 
 	if ((outPathIndex != 0) && (!access(argv[outPathIndex], F_OK))) {
-		printError("Output file already exists\n");
+		printError("Output file already exists");
 		
 		return false;
 	}
@@ -59,10 +58,12 @@ bool callValid(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
 	if (!callValid(argc, argv)) {
-		printError("Usage: mmltomidi [-o output_path] [file]\n");
+		printError("Usage: mmltomidi [-o output_path] [file]");
 		
 		return 1;
 	}
+	
+	FILE *yyin = fopen(argv[(strcmp(argv[1], "-o")) ? 1 : 3], "rb");
 	
 	
 
