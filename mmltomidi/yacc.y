@@ -11,10 +11,7 @@ int yywrap() {
 
 %}
 
-%token ANYTHING
-
 %%
-start_symbol:	ANYTHING
-	|	start_symbol ANYTHING
-	;
+start_symbol:	
+
 %%

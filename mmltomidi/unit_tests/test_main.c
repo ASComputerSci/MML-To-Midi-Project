@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
 	int tests = 1;
 	int testsSuccessful = 0;
 	
-	testsSuccessful += testCallValid() == true;
+	testsSuccessful += testCallValid();
 
 	printf("%d/%d tests successful\n", testsSuccessful, tests);
 	

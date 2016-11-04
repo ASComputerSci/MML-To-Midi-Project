@@ -4,7 +4,6 @@
 %}
 
 %%
-[. ]	return ANYTHING;
+#[. ]*	printf("Comment scanned\n"); 
 
 %%
-

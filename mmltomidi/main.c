@@ -3,9 +3,8 @@
 #include <stdbool.h>
 #include <unistd.h>
 
-#include "main.h"
-#include "lex.yy.c"
-#include "y.tab.c"
+#include "./build/lex.yy.c"
+#include "./build/y.tab.c"
 
 void printError(char *s) {
 #ifndef UNIT_TESTING
@@ -64,8 +63,8 @@ int main(int argc, char *argv[]) {
 	}
 	
 	FILE *yyin = fopen(argv[(strcmp(argv[1], "-o")) ? 1 : 3], "rb");
-	
-	
+
+	yylex();
 
 	return 0;
 }

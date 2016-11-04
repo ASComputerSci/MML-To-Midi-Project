@@ -4,17 +4,11 @@ STD = -std=c99
 OPT = -Og
 EXE = mmltomidi
 
-$(EXE): main.o y.tab.o lex.yy.o
-	gcc -o $(BUILD_DIR)/$(EXE) $(BUILD_DIR)/main.o $(BUILD_DIR)/y.tab.o $(BUILD_DIR)/lex.yy.o
+$(EXE): main.o
+	gcc -o $(BUILD_DIR)/$(EXE) $(BUILD_DIR)/main.o
 
-main.o: main.c main.h
+main.o: main.c lex.yy.c y.tab.c
 	gcc $(STD) -c -o $(BUILD_DIR)/main.o main.c
-	
-y.tab.o: y.tab.c
-	gcc $(STD) -c -o $(BUILD_DIR)/y.tab.o $(BUILD_DIR)/y.tab.c
-	
-lex.yy.o: lex.yy.c
-	gcc $(STD) -c -o $(BUILD_DIR)/lex.yy.o $(BUILD_DIR)/lex.yy.c
 	
 lex.yy.c: lex.l y.tab.h
 	lex -o $(BUILD_DIR)/lex.yy.c lex.l
@@ -22,14 +16,10 @@ lex.yy.c: lex.l y.tab.h
 y.tab.c y.tab.h: yacc.y
 	yacc -d -o $(BUILD_DIR)/y.tab.c yacc.y
 
-test_main: $(TEST_DIR)/test_main.c
-	gcc $(STD) -o $(BUILD_DIR)/test_main $(TEST_DIR)/test_main.c	
-
 .PHONY: clean
 
 clean:
 	rm -f $(BUILD_DIR)/$(EXE)
-	rm -f $(BUILD_DIR)/test_main
 	rm -f $(BUILD_DIR)/*.o
 	rm -f $(BUILD_DIR)/*.c
 	rm -f $(BUILD_DIR)/*.h
