@@ -4,15 +4,8 @@
 #define UNIT_TESTING
 #include "../main.c"
 
-bool testCallValid() {
-	//Assumes the file "a" does not exist
-	
-	struct testArgs {
-		int argc;
-		char *argv[5];
-		bool expected;
-
-	} testArgList[] = {1, {"mmltomidi"}, false,
+bool testFunction() {
+ 	/*testArgList[] = {1, {"mmltomidi"}, false,
 					   3, {"mmltomidi", "a", "a"}, false,
 					   4, {"mmltomidi", "a", "a", "a"}, false,
 					   5, {"mmltomidi", "a", "a", "a", "a"}, false,
@@ -22,7 +15,7 @@ bool testCallValid() {
 					   4, {"mmltomidi", "-o", "a", "."}, true,
 					   4, {"mmltomidi", "-o", ".", "a"}, false,
 					   4, {"mmltomidi", "-o", ".", "."}, false,
-	};
+	};*/
 	
 	for (int i = 0; i < sizeof(testArgList)/sizeof(struct testArgs); i++) {
 		if (callValid(testArgList[i].argc, testArgList[i].argv) != testArgList[i].expected) {
@@ -42,13 +35,21 @@ bool testCallValid() {
 	return true;
 }
 
+void test() {
+	printf("Test\n");
+}
+
 int main(int argc, char *argv[]) {
-	int tests = 1;
+	/*int tests = 1;
 	int testsSuccessful = 0;
 	
 	testsSuccessful += testCallValid();
 
-	printf("%d/%d tests successful\n", testsSuccessful, tests);
+	printf("%d/%d tests successful\n", testsSuccessful, tests);*/
+	
+	*testFunction = test;
+	
+	testFunction();
 	
 	return 0;
 }

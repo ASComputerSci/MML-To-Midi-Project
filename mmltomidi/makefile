@@ -1,5 +1,4 @@
 BUILD_DIR = ./build
-TEST_DIR = ./unit_tests
 STD = -std=c99
 OPT = -Og
 EXE = mmltomidi
@@ -23,3 +22,4 @@ clean:
 	rm -f $(BUILD_DIR)/*.o
 	rm -f $(BUILD_DIR)/*.c
 	rm -f $(BUILD_DIR)/*.h
+
