@@ -3,8 +3,10 @@
 #include <stdbool.h>
 #include <unistd.h>
 
+#ifndef UNIT_TESTING
 #include "./build/lex.yy.c"
 #include "./build/y.tab.c"
+#endif
 
 void printError(char *s) {
 #ifndef UNIT_TESTING

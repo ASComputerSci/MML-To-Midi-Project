@@ -4,8 +4,32 @@
 #define UNIT_TESTING
 #include "../main.c"
 
-bool testFunction() {
- 	/*testArgList[] = {1, {"mmltomidi"}, false,
+bool testCallValid(int argc, char *argv[], bool expected) {
+	char pass = callValid(argc, argv) != expected;
+
+	printf("callValid %s: argc = %d, argv = {", (pass) ? "passed" : "failed", argc);
+
+	for (int i = 0; i < argc - 1; i++) {
+		printf("'%s', ", argv[i]);
+	}
+			
+	printf("'%s'}\n", argv[argc - 1]);
+		
+	return (pass) ? true : false;
+}
+
+int main(int argc, char *argv[]) {
+	int tests = 1;
+	int testsSuccessful = 0;
+	
+	testsSuccessful += testCallValid(1, (char *[]) {"mmltomidi"}, false);
+
+	printf("%d/%d tests successful\n", testsSuccessful, tests);
+	
+	return 0;
+}
+
+/*testArgList[] = {1, {"mmltomidi"}, false,
 					   3, {"mmltomidi", "a", "a"}, false,
 					   4, {"mmltomidi", "a", "a", "a"}, false,
 					   5, {"mmltomidi", "a", "a", "a", "a"}, false,
@@ -16,40 +40,3 @@ bool testFunction() {
 					   4, {"mmltomidi", "-o", ".", "a"}, false,
 					   4, {"mmltomidi", "-o", ".", "."}, false,
 	};*/
-	
-	for (int i = 0; i < sizeof(testArgList)/sizeof(struct testArgs); i++) {
-		if (callValid(testArgList[i].argc, testArgList[i].argv) != testArgList[i].expected) {
-			printf("Call valid failed with arguments: argc = %d, argv = {", testArgList[i].argc);
-			
-			for (int j = 0; j < testArgList[i].argc - 1; j++) {
-				printf("'%s', ", testArgList[i].argv[j]);
-			}
-			
-			printf("'%s'}\n", testArgList[i].argv[testArgList[i].argc - 1]);
-			
-			return false;
-		}
-	}
-
-	printf("callValid passed\n");
-	return true;
-}
-
-void test() {
-	printf("Test\n");
-}
-
-int main(int argc, char *argv[]) {
-	/*int tests = 1;
-	int testsSuccessful = 0;
-	
-	testsSuccessful += testCallValid();
-
-	printf("%d/%d tests successful\n", testsSuccessful, tests);*/
-	
-	*testFunction = test;
-	
-	testFunction();
-	
-	return 0;
-}
