@@ -3,8 +3,12 @@
 #include <stdbool.h>
 #include <unistd.h>
 
+#define DEBUGGING 1
+
+FILE *yyin;
+
 #ifndef UNIT_TESTING
-#include "./build/lex.yy.c"
+#include "./build/lex.yy.c"  
 #include "./build/y.tab.c"
 #endif
 
@@ -64,7 +68,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	
-	FILE *yyin = fopen(argv[(strcmp(argv[1], "-o")) ? 1 : 3], "rb");
+	yyin = fopen(argv[(strcmp(argv[1], "-o")) ? 1 : 3], "rb");
 
 	yylex();
 

@@ -6,12 +6,20 @@ void yyerror(char *s) {
 }
 
 int yywrap() {
-	return 0;
+	return 1;
 }
 
 %}
 
+%token COMMENT LINE_BREAK
+
 %%
-start_symbol:	
+mmlFile:	line { debugPrint("Reduced to start symbol\n") }
+	|	mmlFile line
+	;
+
+line:	LINE_BREAK
+	|	COMMENT LINE_BREAK
+	;
 
 %%
