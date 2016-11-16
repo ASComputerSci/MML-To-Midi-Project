@@ -1,18 +1,17 @@
 %{
 #include "y.tab.h"
 
-#define debugPrint(s) if (DEBUGGING) { fprintf(stderr, s); }   
-
+#define debugPrint(...) if (DEBUGGING) { fprintf(stderr, __VA_ARGS__); }   
 %}
 
 %%
-##[. ]*	{
-	debugPrint("Comment scanned\n");
+^##[.]*[\n(\n\r)]	{
+	debugPrint("Comment scanned: %s\n", yytext);
 	return COMMENT;
 	}
 
-[\n\r]+	{
-	debugPrint("Line break\n");
+^[\n(\n\r)]	{
+	debugPrint("Solitary line break scanned\n");
 	return LINE_BREAK;
 	}
 %%

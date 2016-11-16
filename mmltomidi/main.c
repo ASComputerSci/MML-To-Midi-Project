@@ -62,6 +62,10 @@ bool callValid(int argc, char *argv[]) {
 #ifndef UNIT_TESTING
 
 int main(int argc, char *argv[]) {
+	if (DEBUGGING) {
+		printf("Debugging messages enabled\n");
+	}
+
 	if (!callValid(argc, argv)) {
 		printError("Usage: mmltomidi [-o output_path] [file]");
 		

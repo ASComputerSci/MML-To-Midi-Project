@@ -11,10 +11,11 @@ int yywrap() {
 
 %}
 
+%start mmlFile
 %token COMMENT LINE_BREAK
 
 %%
-mmlFile:	line { debugPrint("Reduced to start symbol\n") }
+mmlFile:	line
 	|	mmlFile line
 	;
 
