@@ -1,6 +1,11 @@
 %{
 #include <stdio.h>
 
+#if DEBUGGING
+#define YYDEBUG 1
+int yydebug = 1;
+#endif
+
 void yyerror(char *s) {
 	fprintf(stderr, "%s\n", s);
 }
@@ -20,7 +25,7 @@ mmlFile:	line
 	;
 
 line:	LINE_BREAK
-	|	COMMENT LINE_BREAK
+	|	COMMENT
 	;
 
 %%

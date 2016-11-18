@@ -3,8 +3,6 @@
 #include <stdbool.h>
 #include <unistd.h>
 
-#define DEBUGGING 1
-
 FILE *yyin;
 
 #ifndef UNIT_TESTING
@@ -63,7 +61,7 @@ bool callValid(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
 	if (DEBUGGING) {
-		printf("Debugging messages enabled\n");
+		printf("Debugging enabled\n");
 	}
 
 	if (!callValid(argc, argv)) {
@@ -74,7 +72,7 @@ int main(int argc, char *argv[]) {
 	
 	yyin = fopen(argv[(strcmp(argv[1], "-o")) ? 1 : 3], "rb");
 
-	yylex();
+	yyparse();
 
 	return 0;
 }

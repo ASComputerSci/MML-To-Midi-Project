@@ -1,4 +1,5 @@
 BUILD_DIR = ./build
+DEBUG = 1
 STD = -std=c99
 OPT = -Og
 EXE = mmltomidi
@@ -7,10 +8,14 @@ $(EXE): main.o
 	gcc -o $(BUILD_DIR)/$(EXE) $(BUILD_DIR)/main.o
 
 main.o: main.c lex.yy.c y.tab.c
-	gcc $(STD) -c -o $(BUILD_DIR)/main.o main.c
+	gcc -D DEBUGGING=$(DEBUG) $(STD) -c -o $(BUILD_DIR)/main.o main.c
 	
 lex.yy.c: lex.l y.tab.h
-	lex -o $(BUILD_DIR)/lex.yy.c lex.l
+ifeq ($(DEBUG), 1)
+		lex -d -o $(BUILD_DIR)/lex.yy.c lex.l
+else
+		lex -o $(BUILD_DIR)/lex.yy.c lex.l
+endif
 	
 y.tab.c y.tab.h: yacc.y
 	yacc -d -o $(BUILD_DIR)/y.tab.c yacc.y
