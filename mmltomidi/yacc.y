@@ -17,7 +17,7 @@ int yywrap() {
 %}
 
 %start mmlFile
-%token COMMENT LINE_BREAK
+%token COMMENT LINE_BREAK TEMPO_SET INSTRUMENT_SET NAME_SET MACRO_ASSIGNED PLAY_COMMAND
 
 %%
 mmlFile:	line
@@ -26,6 +26,11 @@ mmlFile:	line
 
 line:	LINE_BREAK
 	|	COMMENT
+	|	TEMPO_SET
+	|	INSTRUMENT_SET
+	|	NAME_SET
+	|	MACRO_ASSIGNED
+	|	PLAY_COMMAND
 	;
 
 %%
