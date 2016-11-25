@@ -1,5 +1,5 @@
 BUILD_DIR = ./build
-DEBUG = 1
+DEBUG = 0
 STD = -std=c99
 OPT = -Og
 EXE = mmltomidi
@@ -12,9 +12,9 @@ main.o: main.c lex.yy.c y.tab.c
 	
 lex.yy.c: lex.l y.tab.h
 ifeq ($(DEBUG), 1)
-		lex -d -o $(BUILD_DIR)/lex.yy.c lex.l
+		lex -s -d -o $(BUILD_DIR)/lex.yy.c lex.l
 else
-		lex -o $(BUILD_DIR)/lex.yy.c lex.l
+		lex -s -o $(BUILD_DIR)/lex.yy.c lex.l
 endif
 	
 y.tab.c y.tab.h: yacc.y

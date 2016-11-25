@@ -1,39 +1,40 @@
 %{
 #include "y.tab.h"
 
+extern void yyerror(char *s);
+
 %}
 
 %%
-^##.*[\n(\n\r)]?	{
+^##.*(\n|(\n\r))	{
 	return COMMENT;
 	}
 
-^[\n(\n\r)]	{
+^(\n|(\n\r))	{
 	return LINE_BREAK;
 	}
 	
-^#tempo" "[0-9]+[\n(\n\r)] {
+^#tempo" "[0-9]+(\n|(\n\r)) {
 	return TEMPO_SET;
 	}
 	
-^#instrument" "[0-9]+[\n(\n\r)] {
+^#instrument" "[0-9]+(\n|(\n\r)) {
 	return INSTRUMENT_SET;
 	}
 	
-^#name" "[a-zA-Z0-9_]+[\n(\n\r)] {
+^#name" "[a-zA-Z0-9_]+(\n|(\n\r)) {
 	return NAME_SET;
 	}
 	
-^$[a-z]" "[([cdefgabrov][+-]?[0-9])($[a-z])]+[\n(\n\r)] {
+^$[a-z]" "(([cdefgabrov][+-]?[0-9])|($[a-z]))+(\n|(\n\r)) {
 	return MACRO_ASSIGNED;
 	}
 	
-^play" "[([cdefgabrov][+-]?[0-9])($[a-z])]+[\n(\n\r)] {
+^play" "(([cdefgabrov][+-]?[0-9])|($[a-z]))+(\n|(\n\r)) {
 	return PLAY_COMMAND;
 	}
 	
-[.\n]	{
-	yyerror("Error\n");
-	return yytext[0];
+.|\n	{
+	return UNRECOGNISED_CHARACTER;
 	}
 %%
