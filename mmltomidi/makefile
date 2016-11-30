@@ -7,7 +7,7 @@ EXE = mmltomidi
 $(EXE): main.o
 	gcc -o $(BUILD_DIR)/$(EXE) $(BUILD_DIR)/main.o
 
-main.o: main.c lex.yy.c y.tab.c
+main.o: main.c main.h lex.yy.c y.tab.c
 	gcc -D DEBUGGING=$(DEBUG) $(STD) -c -o $(BUILD_DIR)/main.o main.c
 	
 lex.yy.c: lex.l y.tab.h

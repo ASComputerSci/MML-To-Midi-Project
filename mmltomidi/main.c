@@ -3,11 +3,15 @@
 #include <stdbool.h>
 #include <unistd.h>
 
-FILE *yyin;
+#include "main.h"
 
 #ifndef UNIT_TESTING
+
+FILE *yyin;
+struct processedMmlFile mmlFileStruct;
 #include "./build/lex.yy.c"  
 #include "./build/y.tab.c"
+
 #endif
 
 void printError(char *s) {
@@ -73,6 +77,8 @@ int main(int argc, char *argv[]) {
 	yyin = fopen(argv[(strcmp(argv[1], "-o")) ? 1 : 3], "rb");
 
 	yyparse();
+	
+	printf("%s", mmlFileStruct.name);
 
 	return 0;
 }
