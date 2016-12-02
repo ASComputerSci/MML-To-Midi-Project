@@ -6,12 +6,19 @@
 #include "main.h"
 
 #ifndef UNIT_TESTING
-#define printError(s) fprintf(stderr, "%s\n", s)
-#else
-#define printError(s)
+
+FILE *yyin;
+struct processedMmlFile mmlFileStruct;
+#include "./build/lex.yy.c"  
+#include "./build/y.tab.c"
+
 #endif
 
-struct mmlFileStruct processedMmlFile; //Necessary global to get information from lex.yy.c
+void printError(char *s) {
+#ifndef UNIT_TESTING
+	fprintf(stderr, "%s\n", s);
+#endif
+}
 
 bool callValid(int argc, char *argv[]) {
 	//Checks calling syntax is correct & files exist
@@ -57,9 +64,9 @@ bool callValid(int argc, char *argv[]) {
 #ifndef UNIT_TESTING
 
 int main(int argc, char *argv[]) {
-#ifdef DEBUGGING
-	printf("Debugging enabled\n");
-#endif
+	if (DEBUGGING) {
+		printf("Debugging enabled\n");
+	}
 
 	if (!callValid(argc, argv)) {
 		printError("Usage: mmltomidi [-o output_path] [file]");
@@ -68,7 +75,10 @@ int main(int argc, char *argv[]) {
 	}
 	
 	yyin = fopen(argv[(strcmp(argv[1], "-o")) ? 1 : 3], "rb");
+
 	yyparse();
+	
+	printf("%s", mmlFileStruct.name);
 
 	return 0;
 }

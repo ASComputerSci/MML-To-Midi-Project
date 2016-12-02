@@ -4,10 +4,7 @@
 
 #include "y.tab.h"
 
-void yyerror(char *s); //?
-
-extern struct mmlFileStruct;
-struct mmlFileStruct processedMmlFile;
+void yyerror(char *s);
 
 %}
 
@@ -27,7 +24,7 @@ struct mmlFileStruct processedMmlFile;
 		yyerror("Syntax error - tempo set above 255"); //Syntax? Should stop program
 		
 	} else {
-		//mmlFileStruct.tempo = tempoNumber; //Not initialised in this file - probably bad
+		mmlFileStruct.tempo = tempoNumber; //Not initialised in this file - probably bad
 	}
 
 	return TEMPO_SET;
@@ -40,14 +37,14 @@ struct mmlFileStruct processedMmlFile;
 		yyerror("Syntax error - instrument set above 255"); //Syntax? Should stop program
 		
 	} else {
-		//mmlFileStruct.instrument = instrumentNumber; //Not initialised in this file - probably bad
+		mmlFileStruct.instrument = instrumentNumber; //Not initialised in this file - probably bad
 	}
 
 	return INSTRUMENT_SET;
 	}
 	
 ^#name" "[a-zA-Z0-9_]+(\n|(\n\r)) {
-	//mmlFileStruct.name = strchr(yytext, ' ') + 1;
+	mmlFileStruct.name = strchr(yytext, ' ') + 1;
 
 	return NAME_SET;
 	}

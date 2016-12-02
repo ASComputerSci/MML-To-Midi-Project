@@ -1,0 +1,10 @@
+##Test comment 1
+##Test comment 2
+
+#name Test_input_0123
+#tempo 255
+#instrument 6
+
+$a o4a4
+
+play $ac+4
