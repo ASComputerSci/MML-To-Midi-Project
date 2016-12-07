@@ -6,20 +6,17 @@ EXE = mmltomidi
 
 ifeq ($(DEBUG), 1)
 	DEBUGGING = -D DEBUGGING
-
+	LEX_DEBUG = -d
 else
 	DEBUGGING = 
+	LEX_DEBUG =
 endif
 
 $(EXE): main.c main.h y.tab.c lex.yy.c
 	gcc $(DEBUGGING) $(STD) $(OPTI) -o $(BUILD_DIR)/$(EXE) main.c $(BUILD_DIR)/lex.yy.c $(BUILD_DIR)/y.tab.c
 	
 lex.yy.c: lex.l y.tab.h
-ifeq ($(DEBUG), 1)
-	lex -s -d -o $(BUILD_DIR)/lex.yy.c lex.l
-else
-	lex -s -o $(BUILD_DIR)/lex.yy.c lex.l
-endif
+	lex -s $(LEX_DEBUG) -o $(BUILD_DIR)/lex.yy.c lex.l
 	
 y.tab.c y.tab.h: yacc.y
 	yacc -d -o $(BUILD_DIR)/y.tab.c yacc.y

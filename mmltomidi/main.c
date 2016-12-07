@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include "main.h"
+#include "mmlFileStruct.h"
 
 #ifndef UNIT_TESTING
 #define printError(s) fprintf(stderr, "%s\n", s)
@@ -69,6 +70,8 @@ int main(int argc, char *argv[]) {
 	
 	yyin = fopen(argv[(strcmp(argv[1], "-o")) ? 1 : 3], "rb");
 	yyparse();
+	
+	printf("%s\n", processedMmlFile.name);
 
 	return 0;
 }

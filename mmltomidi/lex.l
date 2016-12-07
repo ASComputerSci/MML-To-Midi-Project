@@ -3,11 +3,11 @@
 #include <string.h>
 
 #include "y.tab.h"
+#include "../mmlFileStruct.h"
 
 void yyerror(char *s); //?
 
-extern struct mmlFileStruct;
-struct mmlFileStruct processedMmlFile;
+extern struct mmlFileStruct processedMmlFile;
 
 %}
 
@@ -27,7 +27,7 @@ struct mmlFileStruct processedMmlFile;
 		yyerror("Syntax error - tempo set above 255"); //Syntax? Should stop program
 		
 	} else {
-		//mmlFileStruct.tempo = tempoNumber; //Not initialised in this file - probably bad
+		processedMmlFile.tempo = tempoNumber; //Not initialised in this file - probably bad
 	}
 
 	return TEMPO_SET;
@@ -40,14 +40,16 @@ struct mmlFileStruct processedMmlFile;
 		yyerror("Syntax error - instrument set above 255"); //Syntax? Should stop program
 		
 	} else {
-		//mmlFileStruct.instrument = instrumentNumber; //Not initialised in this file - probably bad
+		processedMmlFile.instrument = instrumentNumber; //Not initialised in this file - probably bad
 	}
 
 	return INSTRUMENT_SET;
 	}
 	
 ^#name" "[a-zA-Z0-9_]+(\n|(\n\r)) {
-	//mmlFileStruct.name = strchr(yytext, ' ') + 1;
+	for (int i = 0; yytext[i] != '\n'; i++) {
+		processedMmlFile.name[i] = yytext[i];
+	} //Resume here
 
 	return NAME_SET;
 	}
