@@ -1,6 +1,0 @@
-Consider not including the source files directly - rather include headers
-containing prototypes, then compile together and link.
-
-Create symbol table contained within the lex & yacc files for macros
-
-

@@ -5,6 +5,7 @@
 #include "y.tab.h"
 #include "../mmlFileStruct.h"
 
+extern int yylval;
 void yyerror(char *s); //?
 
 extern struct mmlFileStruct processedMmlFile;
@@ -21,44 +22,50 @@ extern struct mmlFileStruct processedMmlFile;
 	}
 	
 ^#tempo" "[0-9]+(\n|(\n\r)) {
-	int tempoNumber = atoi(strchr(yytext, ' ') + 1);
+	int tempoNumber = atoi(yytext + 6);
 	
-	if (tempoNumber > 255) {
-		yyerror("Syntax error - tempo set above 255"); //Syntax? Should stop program
-		
-	} else {
-		processedMmlFile.tempo = tempoNumber; //Not initialised in this file - probably bad
+	yylval = tempoNumber;
+	
+	if (tempoNumber <= 255) { //Aborts in the parser
+		processedMmlFile.tempo = tempoNumber;
 	}
 
 	return TEMPO_SET;
 	}
 	
 ^#instrument" "[0-9]+(\n|(\n\r)) {
-	int instrumentNumber = atoi(strchr(yytext, ' ') + 1);
+	int instrumentNumber = atoi(yytext + 11);
 	
-	if (instrumentNumber > 255) {
-		yyerror("Syntax error - instrument set above 255"); //Syntax? Should stop program
-		
-	} else {
-		processedMmlFile.instrument = instrumentNumber; //Not initialised in this file - probably bad
+	yylval = instrumentNumber;
+	
+	if (instrumentNumber <= 255) { //Aborts in the parser
+		processedMmlFile.instrument = instrumentNumber;
 	}
 
 	return INSTRUMENT_SET;
 	}
 	
 ^#name" "[a-zA-Z0-9_]+(\n|(\n\r)) {
-	for (int i = 0; yytext[i] != '\n'; i++) {
-		processedMmlFile.name[i] = yytext[i];
-	} //Resume here
+	int i = 5;
+	
+	while (yytext[++i] != '\n') {
+		processedMmlFile.name[i - 6] = yytext[i];
+	}
+	
+	processedMmlFile.name[i - 6] = '\0';
 
 	return NAME_SET;
 	}
 	
 ^$[a-z]" "(([cdefgabrov][+-]?[0-9])|($[a-z]))+(\n|(\n\r)) {
+	//Set macro in symbol table - probably in yacc file
+
 	return MACRO_ASSIGNED;
 	}
 	
 ^play" "(([cdefgabrov][+-]?[0-9])|($[a-z]))+(\n|(\n\r)) {
+	//Put line into processedMmlFile - probably from here
+
 	return PLAY_COMMAND;
 	}
 	

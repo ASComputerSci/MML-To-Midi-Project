@@ -13,7 +13,7 @@ else
 endif
 
 $(EXE): main.c main.h y.tab.c lex.yy.c
-	gcc $(DEBUGGING) $(STD) $(OPTI) -o $(BUILD_DIR)/$(EXE) main.c $(BUILD_DIR)/lex.yy.c $(BUILD_DIR)/y.tab.c
+	gcc -w $(DEBUGGING) $(STD) $(OPTI) -o $(BUILD_DIR)/$(EXE) main.c $(BUILD_DIR)/lex.yy.c $(BUILD_DIR)/y.tab.c
 	
 lex.yy.c: lex.l y.tab.h
 	lex -s $(LEX_DEBUG) -o $(BUILD_DIR)/lex.yy.c lex.l

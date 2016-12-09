@@ -26,8 +26,18 @@ mmlFile:	line
 
 line:	LINE_BREAK
 	|	COMMENT
-	|	TEMPO_SET
-	|	INSTRUMENT_SET
+	|	TEMPO_SET {
+		if ($$ > 255) {
+			yyerror("Error in input file - tempo set higher than 255");
+			YYERROR;
+		}
+	}	
+	|	INSTRUMENT_SET	{
+		if ($$ > 255) {
+			yyerror("Error in input file - instrument set higher than 255");
+			YYERROR;
+		}
+	}
 	|	NAME_SET
 	|	MACRO_ASSIGNED
 	|	PLAY_COMMAND

@@ -12,6 +12,12 @@
 #define printError(s)
 #endif
 
+#ifdef DEBUGGING
+#define printDebug(...) fprintf(stderr, __VA_ARGS__);
+#else
+#define printDebug(...) ;
+#endif
+
 struct mmlFileStruct processedMmlFile; //Necessary global to get information from lex.yy.c
 
 bool callValid(int argc, char *argv[]) {
@@ -58,10 +64,8 @@ bool callValid(int argc, char *argv[]) {
 #ifndef UNIT_TESTING
 
 int main(int argc, char *argv[]) {
-#ifdef DEBUGGING
-	printf("Debugging enabled\n");
-#endif
-
+	printDebug("Debugging enabled\n");
+	
 	if (!callValid(argc, argv)) {
 		printError("Usage: mmltomidi [-o output_path] [file]");
 		
@@ -69,9 +73,16 @@ int main(int argc, char *argv[]) {
 	}
 	
 	yyin = fopen(argv[(strcmp(argv[1], "-o")) ? 1 : 3], "rb");
-	yyparse();
+	int yyparseResult = yyparse();
 	
-	printf("%s\n", processedMmlFile.name);
+	if (yyparseResult == 1) {
+		printError("Syntax error encountered by parser - terminating\n");
+		
+		return 1;
+	}
+	
+	printDebug("Name set to %s by parser\n", processedMmlFile.name);
+	printDebug("Instrument set to %d by parser\n", processedMmlFile.instrument);
 
 	return 0;
 }
