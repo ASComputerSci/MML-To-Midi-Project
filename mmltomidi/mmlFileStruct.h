@@ -9,4 +9,10 @@ struct mmlFileStruct {
 	unsigned char instrument;
 }; 
 
+struct note {
+	char command;
+	char accidental; //-1 for flat, 1 for sharp
+	char modifier;
+};
+
 #endif

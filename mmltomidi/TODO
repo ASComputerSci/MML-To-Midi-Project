@@ -1,5 +1,1 @@
-Finished linking variables
-
-Create symbol table contained within the lex & yacc files for macros
-
-
+Add line number to syntax error messages;
