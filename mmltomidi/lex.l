@@ -50,6 +50,8 @@ bool macroEnabled[26];
 	}
 	
 ^#name" "[a-zA-Z0-9_]+(\n|(\r\n)) {
+	//Currently does not error on too long a name
+	
 	int i = 5;
 	
 	while (yytext[++i] != '\n') {
@@ -62,6 +64,9 @@ bool macroEnabled[26];
 	}
 	
 ^$[a-z]" "(([cdefgabrov][+-]?[0-9])|($[a-z]))+(\n|(\r\n)) {
+	//Currently allows multiple definitions of same macro
+	//Currently would error on excessive macro length
+	
 	macroEnabled[yytext[1] - 'a'] = true;
 	
 	int i = 3;
@@ -81,6 +86,31 @@ bool macroEnabled[26];
 	//Replace enabled macros
 	//Error on not enabled macros
 	//Move processed string of notes into processedMmlFile
+	
+	char processedYYText[strlen(yytext)];
+	strcpy(processedYYText, yytext);
+	
+	char *i = strchr(yytext, '$');
+	
+	while (i != NULL) {
+		if (!macroEnabled[*(i + 1) - 'a']) {
+			//Error here
+			
+		} else {
+			int newSize = strlen(processedYYText) + strlen(macroTable[*(i + 1) - 'a']) - 2;
+			int oldSize = strlen(processedYYText);
+			
+			buffer[strlen(processedYYText)];
+			strcpy(buffer, processedYYText);
+			
+			processedYYText[newSize];
+			
+			strncpy(processedYYText, buffer, oldSize - i - 1);
+			strncpy(i, macroTable[*(i + 1) - 'a'], strlen(macroTable[*(i + 1) - 'a']));
+		}
+		
+		i = strchr(i + 1, '$');
+	}
 
 	return PLAY_COMMAND;
 	}
