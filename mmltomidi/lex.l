@@ -14,6 +14,52 @@ extern struct mmlFileStruct processedMmlFile;
 char macroTable[26][255]; //Note macro size limit, null terminated
 bool macroEnabled[26];
 
+void replaceSubstring(char *source, char* find, char *replace) {
+	//Requires an array allocated by a malloc as an input
+	
+	int matches = 0;
+	int i = strstr(source, find);
+	
+	while (i != NULL) {
+		matches++;
+		i = strstr(i + 1, find);
+	}
+	
+	if (matches == 0) {
+		return;
+	}
+	
+	char originalSource[strlen(source)];
+	strcpy(originalSource, source); 
+	
+	realloc(source, strlen(source) - matches * strlen(find) + matches * strlen(replace));
+	
+	int oldIndex = 0;
+	int newIndex = 0;
+	char *nextMatch = NULL;
+	
+	while (oldIndex != strlen(originalSource)) {
+		if (nextMatch == NULL) {
+			nextMatch = strstr(originalSource + oldIndex, find);
+
+			if (nextMatch == NULL) {
+				strcpy(source + newIndex, originalSource + oldIndex);
+				break;
+			}
+		}
+		
+		if (nextMatch == originalSource + oldIndex) {
+			strcpy(source + newIndex, replace);
+			newIndex += strlen(replace);
+			oldIndex += strlen(find);
+			nextMatch = NULL;
+			
+		} else {
+			source[newIndex++] = originalSource[oldIndex++];
+		}
+	}
+}
+
 %}
 
 %%
@@ -83,34 +129,26 @@ bool macroEnabled[26];
 	}
 	
 ^play" "(([cdefgabrov][+-]?[0-9])|($[a-z]))+(\n|(\r\n)) {
-	//Replace enabled macros
-	//Error on not enabled macros
+	//Replace enabled macros (DONE)
 	//Move processed string of notes into processedMmlFile
 	
-	char processedYYText[strlen(yytext)];
+	//Currently ignores unassigned macros being used
+	
+	char *processedYYText = malloc(strlen(yytext));
 	strcpy(processedYYText, yytext);
-	
-	char *i = strchr(yytext, '$');
-	
-	while (i != NULL) {
-		if (!macroEnabled[*(i + 1) - 'a']) {
-			//Error here
-			
-		} else {
-			int newSize = strlen(processedYYText) + strlen(macroTable[*(i + 1) - 'a']) - 2;
-			int oldSize = strlen(processedYYText);
-			
-			buffer[strlen(processedYYText)];
-			strcpy(buffer, processedYYText);
-			
-			processedYYText[newSize];
-			
-			strncpy(processedYYText, buffer, oldSize - i - 1);
-			strncpy(i, macroTable[*(i + 1) - 'a'], strlen(macroTable[*(i + 1) - 'a']));
+
+	char macroName[] = "$a";
+
+	for (char i = 0; i < 26; i++) {
+		if (macroEnabled[i]) {
+			macroName[1] = i + 'a';
+			replaceSubstring(processedYYText, macroName, macroTable[i]);
 		}
-		
-		i = strchr(i + 1, '$');
 	}
+	
+	
+	
+	free(processedYYText);
 
 	return PLAY_COMMAND;
 	}
