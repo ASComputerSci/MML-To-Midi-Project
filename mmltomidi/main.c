@@ -18,7 +18,7 @@
 #define printDebug(...) ;
 #endif
 
-struct mmlFileStruct processedMmlFile; //Necessary global to get information from lex.yy.c
+struct mmlFileStruct processedMmlFile; //Necessary global to get information from lex.yy.c, gets cleared in main
 
 bool callValid(int argc, char *argv[]) {
 	//Checks calling syntax is correct & files exist
@@ -71,6 +71,8 @@ int main(int argc, char *argv[]) {
 		
 		return 1;
 	}
+	
+	memset((void *) processedMmlFile, '\0', sizeof(struct mmlFileStruct)); //Fix this
 	
 	yyin = fopen(argv[(strcmp(argv[1], "-o")) ? 1 : 3], "rb");
 	int yyparseResult = yyparse();

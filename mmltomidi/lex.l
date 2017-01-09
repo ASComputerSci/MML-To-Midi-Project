@@ -14,15 +14,15 @@ extern struct mmlFileStruct processedMmlFile;
 char macroTable[26][255]; //Note macro size limit, null terminated
 bool macroEnabled[26];
 
-void replaceSubstring(char *source, char* find, char *replace) {
+void replaceSubstring(char *source, char *find, char *replace) {
 	//Requires an array allocated by a malloc as an input
 	
 	int matches = 0;
-	int i = strstr(source, find);
+	char *i = strstr(source, find);
 	
 	while (i != NULL) {
 		matches++;
-		i = strstr(i + 1, find);
+		i = strstr(i + 1, find); //
 	}
 	
 	if (matches == 0) {
@@ -136,8 +136,8 @@ void replaceSubstring(char *source, char* find, char *replace) {
 	
 	char *processedYYText = malloc(strlen(yytext));
 	strcpy(processedYYText, yytext);
-
-	char macroName[] = "$a";
+	
+	char macroName[] = "$ ";
 
 	for (char i = 0; i < 26; i++) {
 		if (macroEnabled[i]) {
@@ -146,7 +146,27 @@ void replaceSubstring(char *source, char* find, char *replace) {
 		}
 	}
 	
+	int noteIndex = 0;
 	
+	for (int i = 6; i < strlen(processedYYText); i++) {
+		if (strchr("cdefgabrov", processedYYText[i]) != NULL) {
+			processedMmlFile.notes[noteIndex].command = processedYYText[i];
+			
+		} else if (strchr("0123456789", processedYYText[i]) != NULL) {
+			processedMmlFile.notes[noteIndex].modifier = processedYYText[i] - '0';
+			
+			if ((i != strlen(processedYYText) - 1) && (strchr("+-", processedYYText[i + 1]) == NULL)) {
+				noteIndex++;
+			}
+			
+		} else if (strchr("+-", processedYYText[i]) != NULL) {
+			processedMmlFile.notes[noteIndex++].accidental = (processedYYText[i] == '+') ? 1 : -1;
+		}
+	}
+	
+	for (int i = 0; i < noteIndex; i++) {
+		
+	}
 	
 	free(processedYYText);
 
