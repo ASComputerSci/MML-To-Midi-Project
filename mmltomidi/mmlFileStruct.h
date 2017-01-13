@@ -6,7 +6,7 @@
 struct note {
 	char command; //Letter
 	char accidental; //-1 for flat, 1 for sharp
-	char modifier; //Number after
+	char modifier; //Number after (not ascii)
 };
 
 struct mmlFileStruct {
@@ -14,7 +14,7 @@ struct mmlFileStruct {
 	unsigned char tempo;
 	unsigned char instrument;
 	
-	struct note notes[65536]; //Note size limit, null terminated
+	struct note notes[16384]; //Note size limit, null terminated
 }; 
 
 #endif

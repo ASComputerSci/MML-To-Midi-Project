@@ -134,7 +134,7 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	
 	//Currently ignores unassigned macros being used
 	
-	char *processedYYText = malloc(strlen(yytext));
+	char *processedYYText = malloc(strlen(yytext)); //Malloc used for replaceSubstring
 	strcpy(processedYYText, yytext);
 	
 	char macroName[] = "$ ";
@@ -148,24 +148,20 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	
 	int noteIndex = 0;
 	
-	for (int i = 6; i < strlen(processedYYText); i++) {
+	for (int i = 5; i < strlen(processedYYText); i++) {
 		if (strchr("cdefgabrov", processedYYText[i]) != NULL) {
 			processedMmlFile.notes[noteIndex].command = processedYYText[i];
 			
 		} else if (strchr("0123456789", processedYYText[i]) != NULL) {
-			processedMmlFile.notes[noteIndex].modifier = processedYYText[i] - '0';
-			
-			if ((i != strlen(processedYYText) - 1) && (strchr("+-", processedYYText[i + 1]) == NULL)) {
-				noteIndex++;
-			}
+			processedMmlFile.notes[noteIndex++].modifier = processedYYText[i] - '0';
 			
 		} else if (strchr("+-", processedYYText[i]) != NULL) {
-			processedMmlFile.notes[noteIndex++].accidental = (processedYYText[i] == '+') ? 1 : -1;
+			processedMmlFile.notes[noteIndex].accidental = (processedYYText[i] == '+') ? 1 : -1;
+			
+			if ((i != strlen(processedYYText) - 1) && (strchr("0123456789", processedYYText[i + 1]) == NULL)) {
+				noteIndex++;
+			}
 		}
-	}
-	
-	for (int i = 0; i < noteIndex; i++) {
-		
 	}
 	
 	free(processedYYText);

@@ -15,10 +15,22 @@
 #ifdef DEBUGGING
 #define printDebug(...) fprintf(stderr, __VA_ARGS__);
 #else
-#define printDebug(...) ;
+#define printDebug(...);
 #endif
 
 struct mmlFileStruct processedMmlFile; //Necessary global to get information from lex.yy.c, gets cleared in main
+
+char *generateMIDIFile(struct mmlFileStruct *midiData) {
+	//Returns a malloc assigned array
+	
+	char *output = malloc(65535); //Add code to calculate exact size of array here
+	
+	strcpy(output, "MThd");
+	output[4] = 6;
+	
+	
+	return output;
+}
 
 bool callValid(int argc, char *argv[]) {
 	//Checks calling syntax is correct & files exist
@@ -72,10 +84,11 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	
-	memset((void *) processedMmlFile, '\0', sizeof(struct mmlFileStruct)); //Fix this
+	memset(&processedMmlFile, '\0', sizeof(struct mmlFileStruct)); //Fix this
 	
 	yyin = fopen(argv[(strcmp(argv[1], "-o")) ? 1 : 3], "rb");
 	int yyparseResult = yyparse();
+	fclose(yyin);
 	
 	if (yyparseResult == 1) {
 		printError("Syntax error encountered by parser - terminating\n");
@@ -84,7 +97,17 @@ int main(int argc, char *argv[]) {
 	}
 	
 	printDebug("Name set to %s by parser\n", processedMmlFile.name);
+	printDebug("Tempo set to %d by parser\n", processedMmlFile.tempo);
 	printDebug("Instrument set to %d by parser\n", processedMmlFile.instrument);
+	
+	char *midiBuffer = generateMIDIFile(&processedMmlFile);
+
+	FILE *outputFile = fopen("output.midi", "wb"); //Add code to use user set file name
+	
+	fwrite(midiBuffer, 1, 65535, outputFile); //Add code to get size of malloc'd array
+	
+	free(midiBuffer);
+	fclose(outputFile);
 
 	return 0;
 }
