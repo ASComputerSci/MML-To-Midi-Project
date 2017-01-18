@@ -24,9 +24,16 @@ char *generateMIDIFile(struct mmlFileStruct *midiData) {
 	//Returns a malloc assigned array
 	
 	char *output = malloc(65535); //Add code to calculate exact size of array here
+	struct midiFileHeaderChunk *outputHeader = output;
+	struct midiFileTrackChunk *outputTrack = output + sizeof(struct midiFileHeaderChunk);
 	
-	strcpy(output, "MThd");
-	output[4] = 6;
+	strncpy(outputHeader->chunkType, "MThd", 4);
+	outputHeader->length = 6;
+	outputHeader->format = 0;
+	outputHeader->ntrks = 1;
+	outputHeader->division = 96; //Revisit and set correctly
+	
+	strncpy(outputTrack->chunkType, "MTrk", 4);
 	
 	
 	return output;
