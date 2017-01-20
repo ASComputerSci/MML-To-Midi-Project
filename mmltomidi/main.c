@@ -20,6 +20,32 @@
 
 struct mmlFileStruct processedMmlFile; //Necessary global to get information from lex.yy.c, gets cleared in main
 
+int writeVariableLengthQuantity(char *dest, unsigned int n) {
+	//Returns length of variable length quantity written
+	
+	int length = sizeof(int);
+	
+	for (int i = sizeof(int) - 1; i >= 0; i--) {
+		if (n >> i * 7) {
+			break;
+			
+		} else {
+			length--;
+		}
+	}
+	
+	for (int i = length - 1; i >= 0; i--) {
+		if (i == 0) {
+			*(dest + i) = (n >> i * 7) & 0x7F;
+		
+		} else {
+			*(dest + i) = ((n >> i * 7) & 0x7F) + 0x80;
+		}
+	}
+	
+	return length;
+}
+
 char *generateMIDIFile(struct mmlFileStruct *midiData) {
 	//Returns a malloc assigned array
 	
@@ -31,10 +57,15 @@ char *generateMIDIFile(struct mmlFileStruct *midiData) {
 	outputHeader->length = 6;
 	outputHeader->format = 0;
 	outputHeader->ntrks = 1;
-	outputHeader->division = 96; //Revisit and set correctly
+	outputHeader->division = 8;
 	
 	strncpy(outputTrack->chunkType, "MTrk", 4);
+	int trackChunkLength = 4;
+	char *trackChunkPtr = output
 	
+	writeVariableLengthQuantity();
+	
+	//outputTrack->length = ?;
 	
 	return output;
 }

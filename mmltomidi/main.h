@@ -12,7 +12,7 @@ struct midiFileHeaderChunk {
 	short division;
 };
 
-struct midiEvent {
+/*struct midiEvent {
 	char status;
 	char *data; // 1 or 2 bytes
 };
@@ -33,12 +33,12 @@ union eventUnion {
 struct mtrkEvent {
 	char *deltaTime; //Variable-length quantity
 	union eventUnion event;
-};
+};*/
 
 struct midiFileTrackChunk {
 	char chunkType[4];
 	int length;
-	struct mtrkEvent* mtrkEvents;
+	//struct mtrkEvent* mtrkEvents;
 };
 
 #endif
