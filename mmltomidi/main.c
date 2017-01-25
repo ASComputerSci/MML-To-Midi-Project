@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <unistd.h>
 
+#include <math.h>
+
 #include "main.h"
 #include "mmlFileStruct.h"
 
@@ -19,6 +21,20 @@
 #endif
 
 struct mmlFileStruct processedMmlFile; //Necessary global to get information from lex.yy.c, gets cleared in main
+
+void printArray(char *buffer, int size) {
+	//For debugging, remove in final release
+	
+	for (int i = 0; i < size; i++) {
+		if ((i != 0) && (i % (80 / 3) == 0)) {
+			printf("\n");
+		}
+		
+		printf("%02x ", buffer[i]);
+	}
+	
+	printf("\n");
+}
 
 int writeVariableLengthQuantity(char *dest, unsigned int n) {
 	//Returns length of variable length quantity written
@@ -60,12 +76,19 @@ char *generateMIDIFile(struct mmlFileStruct *midiData) {
 	outputHeader->division = 8;
 	
 	strncpy(outputTrack->chunkType, "MTrk", 4);
-	int trackChunkLength = 4;
-	char *trackChunkPtr = output
+	char *trackChunkPtr = output + sizeof(struct midiFileHeaderChunk) + sizeof(struct midiFileTrackChunk);
 	
-	writeVariableLengthQuantity();
+	trackChunkPtr += writeVariableLengthQuantity(trackChunkPtr, 0);
+	*(trackChunkPtr++) = 0xFF;
+	*(trackChunkPtr++) = 0x51;
+	*(trackChunkPtr++) = 0x03;
 	
-	//outputTrack->length = ?;
+	int tpb = 1000000 / midiData->tempo;
+	
+	*((int *) trackChunkPtr) = tpb;
+	trackChunkPtr += 3;
+	
+	outputTrack->length = trackChunkPtr - output - sizeof(struct midiFileHeaderChunk) - sizeof(struct midiFileTrackChunk);
 	
 	return output;
 }
@@ -139,6 +162,7 @@ int main(int argc, char *argv[]) {
 	printDebug("Instrument set to %d by parser\n", processedMmlFile.instrument);
 	
 	char *midiBuffer = generateMIDIFile(&processedMmlFile);
+	printArray(midiBuffer, 256);
 
 	FILE *outputFile = fopen("output.midi", "wb"); //Add code to use user set file name
 	
