@@ -32,7 +32,13 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	char originalSource[strlen(source)];
 	strcpy(originalSource, source); 
 	
-	realloc(source, strlen(source) - matches * strlen(find) + matches * strlen(replace));
+	source = realloc(source, strlen(source) - matches * strlen(find) + matches * strlen(replace));
+	
+	if (source == NULL) {
+		fprintf(stderr, "Error - memory assigned by malloc could not be reallocated\n");
+		source = NULL;
+		return;
+	}
 	
 	int oldIndex = 0;
 	int newIndex = 0;
@@ -129,12 +135,15 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	}
 	
 ^play" "(([cdefgabrov][+-]?[0-9])|($[a-z]))+(\n|(\r\n)) {
-	//Replace enabled macros (DONE)
-	//Move processed string of notes into processedMmlFile
-	
 	//Currently ignores unassigned macros being used
 	
 	char *processedYYText = malloc(strlen(yytext)); //Malloc used for replaceSubstring
+	
+	if (processedYYText == NULL) {
+		fprintf(stderr, "Error - memory could not be allocated by malloc\n");
+		return NULL; //Check for correct functioning
+	}
+	
 	strcpy(processedYYText, yytext);
 	
 	char macroName[] = "$ ";
@@ -163,6 +172,8 @@ void replaceSubstring(char *source, char *find, char *replace) {
 			}
 		}
 	}
+	
+	processedMmlFile.noteCount = noteIndex;
 	
 	free(processedYYText);
 

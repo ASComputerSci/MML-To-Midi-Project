@@ -14,7 +14,8 @@ struct mmlFileStruct {
 	unsigned char tempo;
 	unsigned char instrument;
 	
-	struct note notes[16384]; //Note size limit, null terminated
+	struct note notes[16384]; //Observe size limit
+	int noteCount;
 }; 
 
 #endif
