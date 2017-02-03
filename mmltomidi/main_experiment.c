@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include <math.h>
+#include <arpa/inet.h>
 
 #include "main.h"
 #include "mmlFileStruct.h"
@@ -72,46 +73,13 @@ int writeVariableLengthQuantity(char *dest, unsigned int n) {
 	return length;
 }
 
-int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
-	//Points dest towards a malloc assigned array, null on error, returns length
+void writeMidiFile(FILE *outputFile, struct mmlFileStruct *midiData) {
+	struct midiFileHeaderChunk header;
 	
-	*dest = malloc(14 + 10 + (3 + 6) + (3 + strlen(midiData->name)) + 2 + 9 * midiData->noteCount + 3); //Overestimate
+	strncpy(header.chunkType, "MThd", 4);
+	header.length = 6;
 	
-	if (*dest == NULL) {
-		fprintf(stderr, "Error - memory could not be assigned by malloc\n");
-		return NULL;
-	}
-	
-	struct midiFileHeaderChunk *outputHeader = *dest;
-	struct midiFileTrackChunk *outputTrack = *dest + sizeof(struct midiFileHeaderChunk) - 2;
-	
-	strncpy(outputHeader->chunkType, "MThd", 4);
-	outputHeader->length = 0x06000000;
-	outputHeader->format = 0x0000;
-	outputHeader->ntrks = 0x0100;
-	outputHeader->division = 0x0800;
-	
-	strncpy(outputTrack->chunkType, "MTrk", 4);
-	char *trackChunkPtr = *dest + sizeof(struct midiFileHeaderChunk) + sizeof(struct midiFileTrackChunk);
-	
-	trackChunkPtr += writeVariableLengthQuantity(trackChunkPtr, 0);
-	*(trackChunkPtr++) = 0xFF;
-	*(trackChunkPtr++) = 0x51;
-	*(trackChunkPtr++) = 0x03;
-	trackChunkPtr += 3;
-	
-	*((int *) trackChunkPtr) = 1000000 / midiData->tempo;
-	trackChunkPtr += 3;
-	
-	outputTrack->length = reverseInt(1 + trackChunkPtr - *dest - sizeof(struct midiFileHeaderChunk) - sizeof(struct midiFileTrackChunk));
-	
-	*dest = realloc(*dest, trackChunkPtr - *dest);
-	
-	if (*dest == NULL) {
-		fprintf(stderr, "Error - memory assigned by malloc could not be reallocated\n");
-	}
-	
-	return trackChunkPtr - *dest;
+	fwrite((void *) &header, sizeof(struct midiFileHeaderChunk), 1, outputFile);
 }
 
 bool callValid(int argc, char *argv[]) {
@@ -182,20 +150,10 @@ int main(int argc, char *argv[]) {
 	printDebug("Tempo set to %d by parser\n", processedMmlFile.tempo);
 	printDebug("Instrument set to %d by parser\n", processedMmlFile.instrument);
 	
-	char *midiBuffer;
-	int midiBufferLength = generateMIDIFile(&midiBuffer, &processedMmlFile);
-	
-	if (midiBuffer == NULL) {
-		return 1;
-	}
-	
-	printArray(midiBuffer, midiBufferLength);
-
 	FILE *outputFile = fopen("output.midi", "wb"); //Add code to use user set file name
 	
-	fwrite(midiBuffer, 1, midiBufferLength, outputFile); //Add code to get size of malloc'd array
+	writeMidiFile(outputFile, &processedMmlFile);
 	
-	free(midiBuffer);
 	fclose(outputFile);
 
 	return 0;

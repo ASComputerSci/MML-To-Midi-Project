@@ -36,11 +36,33 @@ void printArray(char *buffer, int size) {
 	printf("\n");
 }
 
-int reverseInt(int n) {
+int forceBigEndiannessInt(int n) {
+	//Could be improved
+
+	if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) {
+		return n;
+	}
+	
 	int o = 0;
 	
 	for (int i = 0; i < sizeof(int); i++) {
 		*((char *) &o + sizeof(int) - i - 1) = *((char *) &n + i);
+	}
+	
+	return o;
+}
+
+int forceBigEndiannessShort(short n) {
+	//Could be improved
+
+	if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) {
+		return n;
+	}
+	
+	int o = 0;
+	
+	for (int i = 0; i < sizeof(short); i++) {
+		*((char *) &o + sizeof(short) - i - 1) = *((char *) &n + i);
 	}
 	
 	return o;
@@ -72,13 +94,43 @@ int writeVariableLengthQuantity(char *dest, unsigned int n) {
 	return length;
 }
 
-void writeMidiFile(FILE *outputFile, struct mmlFileStruct *midiData) {
-	struct midiFileHeaderChunk header;
+int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
+	//Points dest towards a malloc assigned array, null on error, returns length
 	
-	strncpy(header.chunkType, "MThd", 4);
-	header.length = 6;
+	*dest = malloc(14 + 10 + (3 + 6) + (3 + strlen(midiData->name)) + 2 + 9 * midiData->noteCount + 3); //Overestimate
 	
-	fwrite((void *) &header, sizeof(struct midiFileHeaderChunk), 1, outputFile);
+	if (*dest == NULL) {
+		fprintf(stderr, "Error - memory could not be assigned by malloc\n");
+		return NULL;
+	}
+	
+	struct midiFileHeaderChunk *outputHeader = *dest;
+	struct midiFileTrackChunk *outputTrack = *dest + sizeof(struct midiFileHeaderChunk) - 2;
+	
+	strncpy(outputHeader->chunkType, "MThd", 4);
+	outputHeader->length = forceBigEndiannessInt(6);
+	outputHeader->format = 0;
+	outputHeader->ntrks = forceBigEndiannessShort(1);
+	outputHeader->division = forceBigEndiannessShort(8);
+	
+	strncpy(outputTrack->chunkType, "MTrk", 4);
+	char *trackChunkPtr = *dest + sizeof(struct midiFileHeaderChunk) + sizeof(struct midiFileTrackChunk) - 2;
+	
+	*((int *) trackChunkPtr) = forceBigEndiannessInt(0x00FF5103);
+	trackChunkPtr += 4;
+	
+	*((int *) trackChunkPtr) = forceBigEndiannessInt(1000000 / midiData->tempo) >> 8;
+	trackChunkPtr += 3;
+	
+	outputTrack->length = forceBigEndiannessInt(1 + trackChunkPtr - *dest - sizeof(struct midiFileHeaderChunk) - sizeof(struct midiFileTrackChunk));
+	
+	*dest = realloc(*dest, trackChunkPtr - *dest);
+	
+	if (*dest == NULL) {
+		fprintf(stderr, "Error - memory assigned by malloc could not be reallocated\n");
+	}
+	
+	return trackChunkPtr - *dest;
 }
 
 bool callValid(int argc, char *argv[]) {
@@ -149,10 +201,20 @@ int main(int argc, char *argv[]) {
 	printDebug("Tempo set to %d by parser\n", processedMmlFile.tempo);
 	printDebug("Instrument set to %d by parser\n", processedMmlFile.instrument);
 	
+	char *midiBuffer;
+	int midiBufferLength = generateMIDIFile(&midiBuffer, &processedMmlFile);
+	
+	if (midiBuffer == NULL) {
+		return 1;
+	}
+	
+	printArray(midiBuffer, midiBufferLength);
+
 	FILE *outputFile = fopen("output.midi", "wb"); //Add code to use user set file name
 	
-	writeMidiFile(outputFile, &processedMmlFile);
+	fwrite(midiBuffer, 1, midiBufferLength, outputFile);
 	
+	free(midiBuffer);
 	fclose(outputFile);
 
 	return 0;
