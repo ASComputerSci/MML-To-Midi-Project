@@ -39,7 +39,7 @@ void printArray(char *buffer, int size) {
 int forceBigEndiannessInt(int n) {
 	//Could be improved
 
-	if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) {
+	if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) { //Computer run on or compiled on?
 		return n;
 	}
 	
@@ -105,7 +105,7 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 	}
 	
 	struct midiFileHeaderChunk *outputHeader = *dest;
-	struct midiFileTrackChunk *outputTrack = *dest + sizeof(struct midiFileHeaderChunk) - 2;
+	struct midiFileTrackChunk *outputTrack = *dest + sizeof(struct midiFileHeaderChunk);
 	
 	strncpy(outputHeader->chunkType, "MThd", 4);
 	outputHeader->length = forceBigEndiannessInt(6);
@@ -122,12 +122,12 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 	*((int *) trackChunkPtr) = forceBigEndiannessInt(1000000 / midiData->tempo) >> 8;
 	trackChunkPtr += 3;
 	
-	outputTrack->length = forceBigEndiannessInt(1 + trackChunkPtr - *dest - sizeof(struct midiFileHeaderChunk) - sizeof(struct midiFileTrackChunk));
+	outputTrack->length = forceBigEndiannessInt(3 + trackChunkPtr - *dest - sizeof(struct midiFileHeaderChunk) - sizeof(struct midiFileTrackChunk));
 	
-	*dest = realloc(*dest, trackChunkPtr - *dest);
+	*dest = realloc(*dest, trackChunkPtr - *dest + 1);
 	
 	if (*dest == NULL) {
-		fprintf(stderr, "Error - memory assigned by malloc could not be reallocated\n");
+		fprintf(stderr, "Error - malloc'd array could not be reallocated\n");
 	}
 	
 	return trackChunkPtr - *dest;

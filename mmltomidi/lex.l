@@ -175,7 +175,7 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	
 	processedMmlFile.noteCount = noteIndex;
 	
-	free(processedYYText);
+	free(processedYYText); // Gives occasional error from here - high priority
 
 	return PLAY_COMMAND;
 	}
