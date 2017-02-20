@@ -70,6 +70,13 @@ int forceBigEndiannessShort(short n) {
 
 int writeVariableLengthQuantity(char *dest, unsigned int n) {
 	//Returns length of variable length quantity written
+	//Writes in big endian
+	
+	if (n == 0) {
+		*dest = 0;
+		
+		return 1;
+	}
 	
 	int length = sizeof(int);
 	
@@ -84,10 +91,10 @@ int writeVariableLengthQuantity(char *dest, unsigned int n) {
 	
 	for (int i = length - 1; i >= 0; i--) {
 		if (i == 0) {
-			*(dest + i) = (n >> i * 7) & 0x7F;
+			*(dest + length - i - 1) = (n >> i * 7) & 0x7F;
 		
 		} else {
-			*(dest + i) = ((n >> i * 7) & 0x7F) + 0x80;
+			*(dest + length - i - 1) = ((n >> i * 7) & 0x7F) + 0x80;
 		}
 	}
 	
@@ -105,7 +112,7 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 	}
 	
 	struct midiFileHeaderChunk *outputHeader = *dest;
-	struct midiFileTrackChunk *outputTrack = *dest + sizeof(struct midiFileHeaderChunk);
+	struct midiFileTrackChunk *outputTrack = *dest + 14;
 	
 	strncpy(outputHeader->chunkType, "MThd", 4);
 	outputHeader->length = forceBigEndiannessInt(6);
@@ -116,18 +123,50 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 	strncpy(outputTrack->chunkType, "MTrk", 4);
 	char *trackChunkPtr = *dest + sizeof(struct midiFileHeaderChunk) + sizeof(struct midiFileTrackChunk) - 2;
 	
-	*((int *) trackChunkPtr) = forceBigEndiannessInt(0x00FF5103);
+	*((int *) trackChunkPtr) = forceBigEndiannessInt(0x00FF5804); //Time signature
+	trackChunkPtr += 4;
+	*((int *) trackChunkPtr) = forceBigEndiannessInt(0x04021808);
 	trackChunkPtr += 4;
 	
-	*((int *) trackChunkPtr) = forceBigEndiannessInt(1000000 / midiData->tempo) >> 8;
+	*((int *) trackChunkPtr) = forceBigEndiannessInt(0x00FF5103); //Tempo
+	trackChunkPtr += 4;
+	*((int *) trackChunkPtr) = forceBigEndiannessInt(60000000 / midiData->tempo) >> 8;
 	trackChunkPtr += 3;
 	
-	outputTrack->length = forceBigEndiannessInt(3 + trackChunkPtr - *dest - sizeof(struct midiFileHeaderChunk) - sizeof(struct midiFileTrackChunk));
+	*((int *) trackChunkPtr) = forceBigEndiannessInt(0x00C00000 | (midiData->instrument << 8)); //Instrument
+	trackChunkPtr += 3;
+	
+	
+	int deltaTime = 0;
+	
+	for (int i = 0; i < midiData->noteCount; i++) {
+		if (midiData->notes[i].command == 'r') {
+
+			
+		} else if (midiData->notes[i].command == 'o') {
+			
+			
+		} else if (midiData->notes[i].command == 'v') {
+			
+			
+		} else {
+
+		}
+	}
+	
+	
+	trackChunkPtr += writeVariableLengthQuantity(trackChunkPtr, deltaTime);
+	*((int *) trackChunkPtr) = forceBigEndiannessInt(0xFF2F0000); //End of Track
+	trackChunkPtr += 3;
+	
+	outputTrack->length = forceBigEndiannessInt(trackChunkPtr - *dest - 22);
 	
 	*dest = realloc(*dest, trackChunkPtr - *dest + 1);
 	
 	if (*dest == NULL) {
 		fprintf(stderr, "Error - malloc'd array could not be reallocated\n");
+		
+		return NULL;
 	}
 	
 	return trackChunkPtr - *dest;
@@ -212,8 +251,10 @@ int main(int argc, char *argv[]) {
 
 	FILE *outputFile = fopen("output.midi", "wb"); //Add code to use user set file name
 	
-	fwrite(midiBuffer, 1, midiBufferLength, outputFile);
+	//Test to see if file is writable, seg fault otherwise
 	
+	fwrite(midiBuffer, 1, midiBufferLength, outputFile);
+
 	free(midiBuffer);
 	fclose(outputFile);
 
