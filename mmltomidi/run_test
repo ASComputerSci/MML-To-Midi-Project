@@ -1,0 +1,2 @@
+#!/bin/bash
+make clean&&make&&./build/mmltomidi ./build/test_input

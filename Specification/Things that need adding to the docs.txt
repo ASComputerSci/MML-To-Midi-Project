@@ -1,0 +1,1 @@
+The program and source code are designed to be executed and compiled on a little endian machine

@@ -1,10 +1,10 @@
 ##Test comment 1
 ##Test comment 2
 
-#name Test_input_0123
-#tempo 120
-#instrument 6
+#name Pop_Looks_Bach
+#tempo 160
+#instrument 0
 
-$a o4a4
+$b egdgcg<b>gcgdge
 
-play $a$ac+4
+play l3o4gfg$b<g>c<bp5$bp0>cfe<p10$bp0g>gfedefgedcdgegfd<bgr5

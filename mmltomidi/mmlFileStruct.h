@@ -6,7 +6,7 @@
 struct note {
 	char command; //Letter
 	char accidental; //-1 for flat, 1 for sharp
-	char modifier; //Number after (not ascii)
+	char modifier; //Number after, -1 indicated not set
 };
 
 struct mmlFileStruct {

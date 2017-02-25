@@ -30,19 +30,13 @@ void printArray(char *buffer, int size) {
 			printf("\n");
 		}
 		
-		printf("%02x ", buffer[i]);
+		printf("%02x ", (unsigned char) buffer[i]);
 	}
 	
 	printf("\n");
 }
 
-int forceBigEndiannessInt(int n) {
-	//Could be improved
-
-	if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) { //Computer run on or compiled on?
-		return n;
-	}
-	
+int bigEndianInt(int n) {
 	int o = 0;
 	
 	for (int i = 0; i < sizeof(int); i++) {
@@ -52,13 +46,7 @@ int forceBigEndiannessInt(int n) {
 	return o;
 }
 
-int forceBigEndiannessShort(short n) {
-	//Could be improved
-
-	if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) {
-		return n;
-	}
-	
+int bigEndianShort(short n) {
 	int o = 0;
 	
 	for (int i = 0; i < sizeof(short); i++) {
@@ -115,51 +103,88 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 	struct midiFileTrackChunk *outputTrack = *dest + 14;
 	
 	strncpy(outputHeader->chunkType, "MThd", 4);
-	outputHeader->length = forceBigEndiannessInt(6);
+	outputHeader->length = bigEndianInt(6);
 	outputHeader->format = 0;
-	outputHeader->ntrks = forceBigEndiannessShort(1);
-	outputHeader->division = forceBigEndiannessShort(8);
+	outputHeader->ntrks = bigEndianShort(1);
+	outputHeader->division = bigEndianShort(8);
 	
 	strncpy(outputTrack->chunkType, "MTrk", 4);
 	char *trackChunkPtr = *dest + sizeof(struct midiFileHeaderChunk) + sizeof(struct midiFileTrackChunk) - 2;
 	
-	*((int *) trackChunkPtr) = forceBigEndiannessInt(0x00FF5804); //Time signature
+	*((int *) trackChunkPtr) = bigEndianInt(0x00FF5804); //Time signature
 	trackChunkPtr += 4;
-	*((int *) trackChunkPtr) = forceBigEndiannessInt(0x04021808);
+	*((int *) trackChunkPtr) = bigEndianInt(0x04021808);
 	trackChunkPtr += 4;
 	
-	*((int *) trackChunkPtr) = forceBigEndiannessInt(0x00FF5103); //Tempo
+	*((int *) trackChunkPtr) = bigEndianInt(0x00FF5103); //Tempo
 	trackChunkPtr += 4;
-	*((int *) trackChunkPtr) = forceBigEndiannessInt(60000000 / midiData->tempo) >> 8;
+	*((int *) trackChunkPtr) = bigEndianInt(30000000 / midiData->tempo) >> 8;
 	trackChunkPtr += 3;
 	
-	*((int *) trackChunkPtr) = forceBigEndiannessInt(0x00C00000 | (midiData->instrument << 8)); //Instrument
+	*((int *) trackChunkPtr) = bigEndianInt(0x00C00000 | (midiData->instrument << 8)); //Instrument
 	trackChunkPtr += 3;
 	
-	
-	int deltaTime = 0;
-	
+	char octave = 4;
+	char velocity = 0x7F;
+	char transposition = 0;
+	char defaultLength = 5;
+	char noteLookup[7] = {21, 23, 12, 14, 16, 17, 19};
+	char deltaTimeLookup[10] = {1, 2, 3, 4, 6, 8, 12, 16, 24, 32};
+
 	for (int i = 0; i < midiData->noteCount; i++) {
-		if (midiData->notes[i].command == 'r') {
-
+		struct note currentNote = midiData->notes[i];
+		
+		switch (currentNote.command) {
+			case 'o':
+				octave = currentNote.modifier;
+				break;
+				
+			case '<':
+				octave -= (octave == 0) ? 0 : 1;
+				break;
+				
+			case '>':
+				octave += (octave == 9) ? 0 : 1;
+				break;
+				
+			case 'p':
+				transposition = currentNote.modifier;
+				break;
+				
+			case 'v':
+				velocity = (0x7F * currentNote.modifier) / 9;
+				break;
+				
+			case 'l':
+				defaultLength = currentNote.modifier;
+				break;
 			
-		} else if (midiData->notes[i].command == 'o') {
-			
-			
-		} else if (midiData->notes[i].command == 'v') {
-			
-			
-		} else {
-
+			default:
+				if (currentNote.modifier == -1) { //Could be done in lex.l? What is best?
+					currentNote.modifier = defaultLength;
+				}
+				
+				char noteNumber = noteLookup[currentNote.command - 'a'] + 12 * octave + currentNote.accidental + transposition;
+				
+				trackChunkPtr += writeVariableLengthQuantity(trackChunkPtr, 4); //Consider delay
+				*(trackChunkPtr++) = 0x90;
+				*(trackChunkPtr++) = (currentNote.command == 'r') ? 0 : noteNumber;
+				*(trackChunkPtr++) = (currentNote.command == 'r') ? 0 : velocity;
+				
+				trackChunkPtr += writeVariableLengthQuantity(trackChunkPtr, deltaTimeLookup[currentNote.modifier]);
+				*(trackChunkPtr++) = 0x80;
+				*(trackChunkPtr++) = (currentNote.command == 'r') ? 0 : noteNumber;
+				*(trackChunkPtr++) = (currentNote.command == 'r') ? 0 : velocity;
+				
+				break;
 		}
 	}
 	
-	
-	trackChunkPtr += writeVariableLengthQuantity(trackChunkPtr, deltaTime);
-	*((int *) trackChunkPtr) = forceBigEndiannessInt(0xFF2F0000); //End of Track
+	trackChunkPtr += writeVariableLengthQuantity(trackChunkPtr, 0);
+	*((int *) trackChunkPtr) = bigEndianInt(0xFF2F0000); //End of Track
 	trackChunkPtr += 3;
 	
-	outputTrack->length = forceBigEndiannessInt(trackChunkPtr - *dest - 22);
+	outputTrack->length = bigEndianInt(trackChunkPtr - *dest - 22);
 	
 	*dest = realloc(*dest, trackChunkPtr - *dest + 1);
 	
@@ -173,7 +198,7 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 }
 
 bool callValid(int argc, char *argv[]) {
-	//Checks calling syntax is correct & files exist
+	//Checks calling syntax is correct
 	//Currently does not check if the input is a directory
 
 	if ((argc != 2) && (argc != 4)) {
@@ -198,15 +223,15 @@ bool callValid(int argc, char *argv[]) {
 		return false;
 	}
 	
-	if ((inPathIndex != 0) && (access(argv[inPathIndex], F_OK | R_OK))) {
+	if ((inPathIndex != 0) && (access(argv[inPathIndex], F_OK)) && (access(argv[inPathIndex], R_OK))) {
 		printError("Input file cannot be accessed");
 		
 		return false;
 	}
-
-	if ((outPathIndex != 0) && (!access(argv[outPathIndex], F_OK))) {
-		printError("Output file already exists");
-		
+	
+	if (!access(argv[outPathIndex], F_OK) && access(argv[outPathIndex], W_OK)) {
+		printError("Error - output file cannot be written to");
+	
 		return false;
 	}
 	
@@ -247,11 +272,15 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	
-	printArray(midiBuffer, midiBufferLength);
-
+	//printArray(midiBuffer, midiBufferLength);
+	
 	FILE *outputFile = fopen("output.midi", "wb"); //Add code to use user set file name
 	
-	//Test to see if file is writable, seg fault otherwise
+	if (outputFile == NULL) {
+		fprintf(stderr, "Output file could not be created/opened\n");
+		
+		return 1;
+	}
 	
 	fwrite(midiBuffer, 1, midiBufferLength, outputFile);
 

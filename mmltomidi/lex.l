@@ -115,9 +115,10 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	return NAME_SET;
 	}
 	
-^$[a-z]" "(([cdefgabrov][+-]?[0-9])|($[a-z]))+(\n|(\r\n)) {
+^$[a-z]" "(([cdefgabrov][+-]?[0-9]?)|($[a-z])|[<>]|(p[0-9]+)|(l[0-9]))+(\n|(\r\n)) {
 	//Currently allows multiple definitions of same macro
 	//Currently would error on excessive macro length
+	//Currently allows too high a transposition setting
 	
 	macroEnabled[yytext[1] - 'a'] = true;
 	
@@ -134,8 +135,9 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	return MACRO_ASSIGNED;
 	}
 	
-^play" "(([cdefgabrov][+-]?[0-9])|($[a-z]))+(\n|(\r\n)) {
+^play" "(([cdefgabrov][+-]?[0-9]?)|($[a-z])|[<>]|(p[0-9]+)|(l[0-9]))+(\n|(\r\n)) {
 	//Currently ignores unassigned macros being used
+	//Currently allows too high a transposition setting
 	
 	char *processedYYText = malloc(strlen(yytext)); //Malloc used for replaceSubstring
 	
@@ -155,30 +157,76 @@ void replaceSubstring(char *source, char *find, char *replace) {
 		}
 	}
 	
+	int i = 5; //Needs better name
 	int noteIndex = 0;
 	
-	for (int i = 5; i < strlen(processedYYText); i++) {
-		if (strchr("cdefgabrov", processedYYText[i]) != NULL) {
-			processedMmlFile.notes[noteIndex].command = processedYYText[i];
+	while (i < strlen(processedYYText)) {
+		if (strchr("cdefgabrov", processedYYText[i]) != NULL) { //Currently allows many accidentals and lengths and takes the latest one
+			processedMmlFile.notes[noteIndex].command = processedYYText[i++];
+			processedMmlFile.notes[noteIndex].accidental = 0;
+			processedMmlFile.notes[noteIndex].modifier = -1;
 			
-		} else if (strchr("0123456789", processedYYText[i]) != NULL) {
-			processedMmlFile.notes[noteIndex++].modifier = processedYYText[i] - '0';
-			
-		} else if (strchr("+-", processedYYText[i]) != NULL) {
-			processedMmlFile.notes[noteIndex].accidental = (processedYYText[i] == '+') ? 1 : -1;
-			
-			if ((i != strlen(processedYYText) - 1) && (strchr("0123456789", processedYYText[i + 1]) == NULL)) {
-				noteIndex++;
+			while (1) {
+				if ((i < strlen(processedYYText)) && (strchr("+-", processedYYText[i]) != NULL)) {
+					processedMmlFile.notes[noteIndex].accidental = (processedYYText[i++] == '+') ? 1 : -1;
+					
+					continue;
+				}
+				
+				if ((i < strlen(processedYYText)) && (strchr("0123456789", processedYYText[i]) != NULL)) {
+					processedMmlFile.notes[noteIndex].modifier = processedYYText[i++] - '0';
+					
+					continue;
+				}
+				
+				break;
 			}
+			
+			noteIndex++;
+			
+		} else if (strchr("<>", processedYYText[i]) != NULL) {
+			processedMmlFile.notes[noteIndex++].command = processedYYText[i++];
+			
+		} else if (processedYYText[i] == 'p') { //Can be improved
+			processedMmlFile.notes[noteIndex].command = processedYYText[i++];
+			
+			if (i >= strlen(processedYYText)) {
+				break;
+			}
+			
+			char firstNumber = processedYYText[i++] - '0';
+			
+			if (i >= strlen(processedYYText)) {
+				break;
+			}
+			
+			if (strchr("0123456789", processedYYText[i]) != NULL) {
+				processedMmlFile.notes[noteIndex++].modifier = firstNumber * 10 + processedYYText[i++] - '0';
+				
+			} else {
+				processedMmlFile.notes[noteIndex++].modifier = firstNumber;
+			}
+			
+		} else if (processedYYText[i] == 'l') {
+			processedMmlFile.notes[noteIndex].command = processedYYText[i++];
+			
+			if (i >= strlen(processedYYText)) {
+				break;
+			}
+			
+			processedMmlFile.notes[noteIndex++].modifier = processedYYText[i++] - '0';
+		
+		} else { //Could error here to reject unknown characters
+			i++;
 		}
 	}
 	
 	processedMmlFile.noteCount = noteIndex;
-	
+
 	free(processedYYText); // Gives occasional error from here - high priority
 
 	return PLAY_COMMAND;
-	}
+}
 	
 .|\n|\r	{
 	return UNRECOGNISED_CHARACTER;
