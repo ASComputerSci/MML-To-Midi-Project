@@ -6,12 +6,9 @@
 #include "y.tab.h"
 #include "../mmlFileStruct.h"
 
-extern int yylval;
-void yyerror(char *s); //?
-
 extern struct mmlFileStruct processedMmlFile;
 
-char macroTable[26][255]; //Note macro size limit, null terminated
+char macroTable[26][256]; //Note macro size limit, null terminated
 bool macroEnabled[26];
 
 void replaceSubstring(char *source, char *find, char *replace) {
@@ -80,7 +77,7 @@ void replaceSubstring(char *source, char *find, char *replace) {
 ^#tempo" "[0-9]+(\n|(\r\n)) {
 	int tempoNumber = atoi(yytext + 6);
 	
-	yylval = tempoNumber;
+	yylval.value = tempoNumber;
 	
 	if (tempoNumber <= 255) { //Aborts in the parser
 		processedMmlFile.tempo = tempoNumber;
@@ -92,7 +89,7 @@ void replaceSubstring(char *source, char *find, char *replace) {
 ^#instrument" "[0-9]+(\n|(\r\n)) {
 	int instrumentNumber = atoi(yytext + 11);
 	
-	yylval = instrumentNumber;
+	yylval.value = instrumentNumber;
 	
 	if (instrumentNumber <= 255) { //Aborts in the parser
 		processedMmlFile.instrument = instrumentNumber;
@@ -115,35 +112,36 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	return NAME_SET;
 	}
 	
-^$[a-z]" "(([cdefgabrov][+-]?[0-9]?)|($[a-z])|[<>]|(p[0-9]+)|(l[0-9]))+(\n|(\r\n)) {
+^$[a-z]" "(([cdefgabrov][+-]?[0-9]?)|($[a-z])|[<>]|(p[0-9]+)|(l[0-9])|" ")+(\n|(\r\n)) {
 	//Currently allows multiple definitions of same macro
-	//Currently would error on excessive macro length
 	//Currently allows too high a transposition setting
-	
-	macroEnabled[yytext[1] - 'a'] = true;
 	
 	int i = 3;
 	
 	while (yytext[i] != '\n' && yytext[i] != '\r') {
-		macroTable[yytext[1] - 'a'][i - 3] = yytext[i];
-		
-		i++;
+		if (i == 259) { //Check!
+			strcpy(yylval.errorMessage, "Macro assigned was too long - limit is 255");
+			return ERROR;
+		}
+	
+		macroTable[yytext[1] - 'a'][i - 3] = yytext[i++];
 	}
 	
+	macroEnabled[yytext[1] - 'a'] = true;
 	macroTable[yytext[1] - 'a'][i - 3] = '\0';
 	
 	return MACRO_ASSIGNED;
 	}
 	
-^play" "(([cdefgabrov][+-]?[0-9]?)|($[a-z])|[<>]|(p[0-9]+)|(l[0-9]))+(\n|(\r\n)) {
+^play" "(([cdefgabrov][+-]?[0-9]?)|($[a-z])|[<>]|(p[0-9]+)|(l[0-9])|" ")+(\n|(\r\n)) {
 	//Currently ignores unassigned macros being used
 	//Currently allows too high a transposition setting
 	
 	char *processedYYText = malloc(strlen(yytext)); //Malloc used for replaceSubstring
 	
 	if (processedYYText == NULL) {
-		fprintf(stderr, "Error - memory could not be allocated by malloc\n");
-		return NULL; //Check for correct functioning
+		strcpy(yylval.errorMessage, "Error - memory could not be allocated by malloc");
+		return ERROR;
 	}
 	
 	strcpy(processedYYText, yytext);
@@ -216,19 +214,19 @@ void replaceSubstring(char *source, char *find, char *replace) {
 			
 			processedMmlFile.notes[noteIndex++].modifier = processedYYText[i++] - '0';
 		
-		} else { //Could error here to reject unknown characters
+		} else {
 			i++;
 		}
 	}
 	
 	processedMmlFile.noteCount = noteIndex;
 
-	free(processedYYText); // Gives occasional error from here - high priority
+	free(processedYYText);
 
 	return PLAY_COMMAND;
 }
 	
 .|\n|\r	{
-	return UNRECOGNISED_CHARACTER;
+	return ERROR;
 	}
 %%

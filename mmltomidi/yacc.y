@@ -21,8 +21,23 @@ int yywrap() {
 
 %}
 
+%union {
+	int value;
+	char errorMessage[256];
+}
+
 %start mmlFile
-%token COMMENT LINE_BREAK TEMPO_SET INSTRUMENT_SET NAME_SET MACRO_ASSIGNED PLAY_COMMAND UNRECOGNISED_CHARACTER
+
+%token <value> COMMENT
+%token <value> LINE_BREAK
+%token <value> TEMPO_SET
+%token <value> INSTRUMENT_SET
+%token <value> NAME_SET
+%token <value> MACRO_ASSIGNED
+%token <value> PLAY_COMMAND
+%token <errorMessage> ERROR
+
+%type <value> line
 
 %%
 mmlFile:	line
@@ -68,5 +83,8 @@ line:	LINE_BREAK
 	}
 	|	MACRO_ASSIGNED
 	|	PLAY_COMMAND
-	;
+	|	ERROR {
+		fprintf(stderr, "%s\n", $1);
+		YYERROR;
+	};
 %%

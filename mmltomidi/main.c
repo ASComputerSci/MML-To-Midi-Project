@@ -272,7 +272,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	
-	//printArray(midiBuffer, midiBufferLength);
+	printArray(midiBuffer, midiBufferLength);
 	
 	FILE *outputFile = fopen("output.midi", "wb"); //Add code to use user set file name
 	
