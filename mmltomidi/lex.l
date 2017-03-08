@@ -66,45 +66,52 @@ void replaceSubstring(char *source, char *find, char *replace) {
 %}
 
 %%
-^##.*(\n|(\r\n))	{
+^##.*(\r|\n|(\r\n))	{
 	return COMMENT;
 	}
 
-^(\n|(\r\n))	{
+^(\r|\n|(\r\n))	{
 	return LINE_BREAK;
 	}
 	
-^#tempo" "[0-9]+(\n|(\r\n)) {
-	int tempoNumber = atoi(yytext + 6);
+^#tempo" "[0-9]{1,3}(\r|\n|(\r\n)) {
+	int tempoNumber = atoi(yytext + 7);
 	
-	yylval.value = tempoNumber;
-	
-	if (tempoNumber <= 255) { //Aborts in the parser
-		processedMmlFile.tempo = tempoNumber;
+	if (tempoNumber > 255) {
+		strcpy(yylval.errorMessage, "Error - tempo set higher than 255");
+		return ERROR;
 	}
+
+	processedMmlFile.notes[processedMmlFile.noteCount].command = 't';
+	processedMmlFile.notes[processedMmlFile.noteCount++].modifier = tempoNumber;
 
 	return TEMPO_SET;
 	}
 	
-^#instrument" "[0-9]+(\n|(\r\n)) {
+^#instrument" "[0-9]+(\r|\n|(\r\n)) {
 	int instrumentNumber = atoi(yytext + 11);
 	
-	yylval.value = instrumentNumber;
-	
-	if (instrumentNumber <= 255) { //Aborts in the parser
-		processedMmlFile.instrument = instrumentNumber;
+	if (instrumentNumber > 127) {
+		strcpy(yylval.errorMessage, "Error - instrument set higher than 127");
+		return ERROR;
 	}
+	
+	yylval.value = instrumentNumber;
+	processedMmlFile.instrument = instrumentNumber;
 
 	return INSTRUMENT_SET;
 	}
 	
-^#name" "[a-zA-Z0-9_]+(\n|(\r\n)) {
-	//Currently does not error on too long a name
-	
+^#name" "[a-zA-Z0-9_]+(\r|\n|(\r\n)) {
 	int i = 5;
 	
-	while (yytext[++i] != '\n') {
-		processedMmlFile.name[i - 6] = yytext[i];
+	while (yytext[i] != '\n' && yytext[i] != '\r') {
+		if (i == 260) {
+			strcpy(yylval.errorMessage, "Error - name set was too long: limit is 254");
+			return ERROR;
+		}
+		
+		processedMmlFile.name[i - 6] = yytext[i++];
 	}
 	
 	processedMmlFile.name[i - 6] = '\0';
@@ -112,14 +119,11 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	return NAME_SET;
 	}
 	
-^$[a-z]" "(([cdefgabrov][+-]?[0-9]?)|($[a-z])|[<>]|(p[0-9]+)|(l[0-9])|" ")+(\n|(\r\n)) {
-	//Currently allows multiple definitions of same macro
-	//Currently allows too high a transposition setting
-	
+^$[a-z]" "(([cdefgabrov][+-]?[0-9]?)|($[a-z])|[<>]|(p[0-9]+)|(l[0-9])|" ")+(\r|\n|(\r\n)) {
 	int i = 3;
 	
 	while (yytext[i] != '\n' && yytext[i] != '\r') {
-		if (i == 259) { //Check!
+		if (i == 258) {
 			strcpy(yylval.errorMessage, "Macro assigned was too long - limit is 255");
 			return ERROR;
 		}
@@ -133,46 +137,52 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	return MACRO_ASSIGNED;
 	}
 	
-^play" "(([cdefgabrov][+-]?[0-9]?)|($[a-z])|[<>]|(p[0-9]+)|(l[0-9])|" ")+(\n|(\r\n)) {
+^play" "(([cdefgabrov][+-]?[0-9]?)|($[a-z])|[<>]|(p[0-9]{1,2})|(l[0-9])|" ")+(\r|\n|(\r\n)) {
 	//Currently ignores unassigned macros being used
-	//Currently allows too high a transposition setting
 	
 	char *processedYYText = malloc(strlen(yytext)); //Malloc used for replaceSubstring
 	
 	if (processedYYText == NULL) {
-		strcpy(yylval.errorMessage, "Error - memory could not be allocated by malloc");
+		strcpy(yylval.errorMessage, "Error - memory could not be malloc'd");
 		return ERROR;
 	}
 	
 	strcpy(processedYYText, yytext);
+	
+	for (int i = 0; i < strlen(yytext); i++) {
+		if ((yytext[i] == '$') && (!macroEnabled[yytext[i + 1] - 'a'])) {
+			strcpy(yylval.errorMessage, "Macro used but not assigned");
+			return ERROR;
+		}
+	}
 	
 	char macroName[] = "$ ";
 
 	for (char i = 0; i < 26; i++) {
 		if (macroEnabled[i]) {
 			macroName[1] = i + 'a';
+			
 			replaceSubstring(processedYYText, macroName, macroTable[i]);
 		}
 	}
 	
 	int i = 5; //Needs better name
-	int noteIndex = 0;
 	
 	while (i < strlen(processedYYText)) {
-		if (strchr("cdefgabrov", processedYYText[i]) != NULL) { //Currently allows many accidentals and lengths and takes the latest one
-			processedMmlFile.notes[noteIndex].command = processedYYText[i++];
-			processedMmlFile.notes[noteIndex].accidental = 0;
-			processedMmlFile.notes[noteIndex].modifier = -1;
+		if (strchr("cdefgabrov", processedYYText[i]) != NULL) {
+			processedMmlFile.notes[processedMmlFile.noteCount].command = processedYYText[i++];
+			processedMmlFile.notes[processedMmlFile.noteCount].accidental = 0;
+			processedMmlFile.notes[processedMmlFile.noteCount].modifier = -1;
 			
 			while (1) {
 				if ((i < strlen(processedYYText)) && (strchr("+-", processedYYText[i]) != NULL)) {
-					processedMmlFile.notes[noteIndex].accidental = (processedYYText[i++] == '+') ? 1 : -1;
+					processedMmlFile.notes[processedMmlFile.noteCount].accidental = (processedYYText[i++] == '+') ? 1 : -1;
 					
 					continue;
 				}
 				
 				if ((i < strlen(processedYYText)) && (strchr("0123456789", processedYYText[i]) != NULL)) {
-					processedMmlFile.notes[noteIndex].modifier = processedYYText[i++] - '0';
+					processedMmlFile.notes[processedMmlFile.noteCount].modifier = processedYYText[i++] - '0';
 					
 					continue;
 				}
@@ -180,46 +190,34 @@ void replaceSubstring(char *source, char *find, char *replace) {
 				break;
 			}
 			
-			noteIndex++;
+			processedMmlFile.noteCount++;
 			
 		} else if (strchr("<>", processedYYText[i]) != NULL) {
-			processedMmlFile.notes[noteIndex++].command = processedYYText[i++];
+			processedMmlFile.notes[processedMmlFile.noteCount++].command = processedYYText[i++];
 			
-		} else if (processedYYText[i] == 'p') { //Can be improved
-			processedMmlFile.notes[noteIndex].command = processedYYText[i++];
+		} else if (processedYYText[i] == 'p') {
+			processedMmlFile.notes[processedMmlFile.noteCount].command = processedYYText[i++];
+			processedMmlFile.notes[processedMmlFile.noteCount].modifier = 0;
 			
-			if (i >= strlen(processedYYText)) {
-				break;
+			if ((i + 1 < strlen(processedYYText)) && (strchr("0123456789", processedYYText[i + 1]) != NULL)) {
+				processedMmlFile.notes[processedMmlFile.noteCount].modifier = (processedYYText[i++] - '0') * 10;
 			}
 			
-			char firstNumber = processedYYText[i++] - '0';
+			processedMmlFile.notes[processedMmlFile.noteCount].modifier += processedYYText[i++] - '0';
 			
-			if (i >= strlen(processedYYText)) {
-				break;
-			}
-			
-			if (strchr("0123456789", processedYYText[i]) != NULL) {
-				processedMmlFile.notes[noteIndex++].modifier = firstNumber * 10 + processedYYText[i++] - '0';
-				
-			} else {
-				processedMmlFile.notes[noteIndex++].modifier = firstNumber;
+			if (processedMmlFile.notes[processedMmlFile.noteCount++].modifier > 11) {
+				strcpy(yylval.errorMessage, "Transposition set too high - only values from 0 to 11 are valid");
+				return ERROR;
 			}
 			
 		} else if (processedYYText[i] == 'l') {
-			processedMmlFile.notes[noteIndex].command = processedYYText[i++];
-			
-			if (i >= strlen(processedYYText)) {
-				break;
-			}
-			
-			processedMmlFile.notes[noteIndex++].modifier = processedYYText[i++] - '0';
+			processedMmlFile.notes[processedMmlFile.noteCount].command = processedYYText[i++];
+			processedMmlFile.notes[processedMmlFile.noteCount++].modifier = processedYYText[i++] - '0';
 		
 		} else {
 			i++;
 		}
 	}
-	
-	processedMmlFile.noteCount = noteIndex;
 
 	free(processedYYText);
 

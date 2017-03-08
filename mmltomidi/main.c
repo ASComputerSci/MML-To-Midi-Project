@@ -91,8 +91,8 @@ int writeVariableLengthQuantity(char *dest, unsigned int n) {
 
 int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 	//Points dest towards a malloc assigned array, null on error, returns length
-	
-	*dest = malloc(14 + 10 + (3 + 6) + (3 + strlen(midiData->name)) + 2 + 9 * midiData->noteCount + 3); //Overestimate
+
+	*dest = malloc(8192); //Make appropriate estimate!
 	
 	if (*dest == NULL) {
 		fprintf(stderr, "Error - memory could not be assigned by malloc\n");
@@ -111,14 +111,21 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 	strncpy(outputTrack->chunkType, "MTrk", 4);
 	char *trackChunkPtr = *dest + sizeof(struct midiFileHeaderChunk) + sizeof(struct midiFileTrackChunk) - 2;
 	
+	if (midiData->name[0]) {
+		*((int *) trackChunkPtr) = bigEndianInt(0x00FF0300 + strlen(midiData->name)); //Name
+		trackChunkPtr += 4;
+		strcpy(trackChunkPtr, midiData->name);
+		trackChunkPtr += strlen(midiData->name);
+	}
+	
 	*((int *) trackChunkPtr) = bigEndianInt(0x00FF5804); //Time signature
 	trackChunkPtr += 4;
 	*((int *) trackChunkPtr) = bigEndianInt(0x04021808);
 	trackChunkPtr += 4;
 	
-	*((int *) trackChunkPtr) = bigEndianInt(0x00FF5103); //Tempo
+	*((int *) trackChunkPtr) = bigEndianInt(0x00FF5103); //Default tempo
 	trackChunkPtr += 4;
-	*((int *) trackChunkPtr) = bigEndianInt(30000000 / midiData->tempo) >> 8;
+	*((int *) trackChunkPtr) = bigEndianInt(30000000 / 120) >> 8;
 	trackChunkPtr += 3;
 	
 	*((int *) trackChunkPtr) = bigEndianInt(0x00C00000 | (midiData->instrument << 8)); //Instrument
@@ -158,6 +165,14 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 			case 'l':
 				defaultLength = currentNote.modifier;
 				break;
+				
+			case 't':
+				printf("%d\n", 30000000 / currentNote.modifier);
+			
+				*((int *) trackChunkPtr) = bigEndianInt(0x00FF5103);
+				trackChunkPtr += 4;
+				*((int *) trackChunkPtr) = bigEndianInt(30000000 / currentNote.modifier) >> 8;
+				trackChunkPtr += 3;
 			
 			default:
 				if (currentNote.modifier == -1) { //Could be done in lex.l? What is best?
@@ -185,9 +200,9 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 	trackChunkPtr += 3;
 	
 	outputTrack->length = bigEndianInt(trackChunkPtr - *dest - 22);
-	
+
 	*dest = realloc(*dest, trackChunkPtr - *dest + 1);
-	
+
 	if (*dest == NULL) {
 		fprintf(stderr, "Error - malloc'd array could not be reallocated\n");
 		
@@ -249,7 +264,9 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	
-	memset(&processedMmlFile, '\0', sizeof(struct mmlFileStruct)); //Fix this
+	processedMmlFile.name[0] = 0;
+	processedMmlFile.instrument = 0;
+	processedMmlFile.noteCount = 0;
 	
 	yyin = fopen(argv[(strcmp(argv[1], "-o")) ? 1 : 3], "rb");
 	int yyparseResult = yyparse();
@@ -260,10 +277,6 @@ int main(int argc, char *argv[]) {
 		
 		return 1;
 	}
-	
-	printDebug("Name set to %s by parser\n", processedMmlFile.name);
-	printDebug("Tempo set to %d by parser\n", processedMmlFile.tempo);
-	printDebug("Instrument set to %d by parser\n", processedMmlFile.instrument);
 	
 	char *midiBuffer;
 	int midiBufferLength = generateMIDIFile(&midiBuffer, &processedMmlFile);
@@ -283,7 +296,7 @@ int main(int argc, char *argv[]) {
 	}
 	
 	fwrite(midiBuffer, 1, midiBufferLength, outputFile);
-
+	
 	free(midiBuffer);
 	fclose(outputFile);
 
