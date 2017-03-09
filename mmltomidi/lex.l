@@ -96,8 +96,8 @@ void replaceSubstring(char *source, char *find, char *replace) {
 		return ERROR;
 	}
 	
-	yylval.value = instrumentNumber;
-	processedMmlFile.instrument = instrumentNumber;
+	processedMmlFile.notes[processedMmlFile.noteCount].command = 'i';
+	processedMmlFile.notes[processedMmlFile.noteCount++].modifier = instrumentNumber;
 
 	return INSTRUMENT_SET;
 	}
@@ -167,12 +167,13 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	}
 	
 	int i = 5; //Needs better name
+	char defaultLength = 5;
 	
 	while (i < strlen(processedYYText)) {
 		if (strchr("cdefgabrov", processedYYText[i]) != NULL) {
 			processedMmlFile.notes[processedMmlFile.noteCount].command = processedYYText[i++];
 			processedMmlFile.notes[processedMmlFile.noteCount].accidental = 0;
-			processedMmlFile.notes[processedMmlFile.noteCount].modifier = -1;
+			processedMmlFile.notes[processedMmlFile.noteCount].modifier = defaultLength;
 			
 			while (1) {
 				if ((i < strlen(processedYYText)) && (strchr("+-", processedYYText[i]) != NULL)) {
@@ -211,8 +212,7 @@ void replaceSubstring(char *source, char *find, char *replace) {
 			}
 			
 		} else if (processedYYText[i] == 'l') {
-			processedMmlFile.notes[processedMmlFile.noteCount].command = processedYYText[i++];
-			processedMmlFile.notes[processedMmlFile.noteCount++].modifier = processedYYText[i++] - '0';
+			defaultLength = processedYYText[i++] - '0';
 		
 		} else {
 			i++;

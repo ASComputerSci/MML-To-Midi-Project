@@ -109,7 +109,7 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 	outputHeader->division = bigEndianShort(8);
 	
 	strncpy(outputTrack->chunkType, "MTrk", 4);
-	char *trackChunkPtr = *dest + sizeof(struct midiFileHeaderChunk) + sizeof(struct midiFileTrackChunk) - 2;
+	char *trackChunkPtr = *dest + 14 + 8;
 	
 	if (midiData->name[0]) {
 		*((int *) trackChunkPtr) = bigEndianInt(0x00FF0300 + strlen(midiData->name)); //Name
@@ -128,13 +128,12 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 	*((int *) trackChunkPtr) = bigEndianInt(30000000 / 120) >> 8;
 	trackChunkPtr += 3;
 	
-	*((int *) trackChunkPtr) = bigEndianInt(0x00C00000 | (midiData->instrument << 8)); //Instrument
+	*((int *) trackChunkPtr) = bigEndianInt(0x00C00000); //Default instrument
 	trackChunkPtr += 3;
 	
 	char octave = 4;
 	char velocity = 0x7F;
 	char transposition = 0;
-	char defaultLength = 5;
 	char noteLookup[7] = {21, 23, 12, 14, 16, 17, 19};
 	char deltaTimeLookup[10] = {1, 2, 3, 4, 6, 8, 12, 16, 24, 32};
 
@@ -162,23 +161,22 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 				velocity = (0x7F * currentNote.modifier) / 9;
 				break;
 				
-			case 'l':
-				defaultLength = currentNote.modifier;
-				break;
-				
 			case 't':
-				printf("%d\n", 30000000 / currentNote.modifier);
-			
 				*((int *) trackChunkPtr) = bigEndianInt(0x00FF5103);
 				trackChunkPtr += 4;
 				*((int *) trackChunkPtr) = bigEndianInt(30000000 / currentNote.modifier) >> 8;
 				trackChunkPtr += 3;
+				
+				break;
+				
+			case 'i':
+				*((int *) trackChunkPtr) = bigEndianInt(0x00C00000 | (currentNote.modifier << 8));
+				trackChunkPtr += 3;
+				
+				break;
 			
 			default:
-				if (currentNote.modifier == -1) { //Could be done in lex.l? What is best?
-					currentNote.modifier = defaultLength;
-				}
-				
+				;
 				char noteNumber = noteLookup[currentNote.command - 'a'] + 12 * octave + currentNote.accidental + transposition;
 				
 				trackChunkPtr += writeVariableLengthQuantity(trackChunkPtr, 4); //Consider delay
@@ -265,7 +263,6 @@ int main(int argc, char *argv[]) {
 	}
 	
 	processedMmlFile.name[0] = 0;
-	processedMmlFile.instrument = 0;
 	processedMmlFile.noteCount = 0;
 	
 	yyin = fopen(argv[(strcmp(argv[1], "-o")) ? 1 : 3], "rb");
