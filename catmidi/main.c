@@ -19,6 +19,26 @@ void printArray(char *buffer, int size) {
 	printf("\n");
 }
 
+int bigEndianInt(int n) {
+	int o = 0;
+	
+	for (int i = 0; i < sizeof(int); i++) {
+		*((char *) &o + sizeof(int) - i - 1) = *((char *) &n + i);
+	}
+	
+	return o;
+}
+
+int bigEndianShort(short n) {
+	int o = 0;
+	
+	for (int i = 0; i < sizeof(short); i++) {
+		*((char *) &o + sizeof(short) - i - 1) = *((char *) &n + i);
+	}
+	
+	return o;
+}
+
 bool fileReadable(char *path) {
 	if (access(path, R_OK)) {
 		fprintf(stderr, "File %s is not readable\n", path);
@@ -62,13 +82,54 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	for (int i = (strcmp(argv[1], "-o")) ? 1 : 3; i < argc; i++) {
+	bool outputPathGiven = (strcmp(argv[1], "-o")) ? false : true;
+	char startOfInputs = (outputPathGiven) ? 3 : 1;
+	char numberOfInputs = argc - startOfInputs;
+
+	for (int i = startOfInputs; i < argc; i++) {
 		if ((!pathValid(argv[i])) || (!fileReadable(argv[i]))) {
 			return 1;
 		}
 	}
 	
+	FILE *outputFile = fopen((outputPathGiven) ? argv[2] : "./output.midi", "wb");
 	
+	if (outputFile == NULL) {
+		fprintf(stderr, "Output file could not be created\n");
+		
+		return 1;
+	}
+	
+	char outputBuffer[16384]; //Note a fixed length of buffer is employed
+	
+	struct MThd *outputHeader = (void *) outputBuffer;
+	struct MTrk *outputTrackHeader = (void *) outputBuffer + 14;
+	char *trackPtr = (void *) outputBuffer + 14 + 8;
+	
+	strncpy(outputHeader->chunkType, "MThd", 4);
+	outputHeader->length = bigEndianInt(6);
+	outputHeader->format = 0;
+	outputHeader->ntrks = bigEndianInt(1);
+	outputHeader->division = bigEndianInt(8);
+	
+	strncpy(outputTrackHeader->chunkType, "MTrk", 4);
+	
+	FILE *inputFile[numberOfInputs];
+	
+	for (int i = startOfInputs; i < argc; i++) {
+		inputFile[i - startOfInputs] = fopen(argv[i], "rb");
+		fseek(inputFile[i - startOfInputs], 14 + 8, SEEK_SET);
+	}
+	
+	
+	
+	for (int i = 0; i < numberOfInputs; i++) {
+		fclose(inputFile[i]);
+	}
+	
+	outputTrackHeader->length = bigEndianInt(trackPtr - outputBuffer - 14 - 8);
+	
+	fclose(outputFile);
 
 	return 0;
 }
