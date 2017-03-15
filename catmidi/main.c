@@ -19,6 +19,31 @@ void printArray(char *buffer, int size) {
 	printf("\n");
 }
 
+int readVariableLengthQuantity(char *ptr) {
+	//Currently would segmentation error on a very large variable length quantity
+	//Almost certainly can be optimised
+	
+	char *originalPtr = ptr;
+	
+	while (*(ptr) & 0x80) {
+		ptr++;
+	}
+	
+	int output = 0;
+	int outputShift = 0;
+	
+	do {
+		printf("%02X\n", (unsigned char) *ptr);
+		
+		output |= (*ptr & 0x7F) << outputShift;
+		
+		outputShift += 7;
+		
+	} while (ptr-- != originalPtr);
+	
+	return output;
+}
+
 int bigEndianInt(int n) {
 	int o = 0;
 	
