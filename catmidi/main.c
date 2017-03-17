@@ -33,8 +33,6 @@ int readVariableLengthQuantity(char *ptr) {
 	int outputShift = 0;
 	
 	do {
-		printf("%02X\n", (unsigned char) *ptr);
-		
 		output |= (*ptr & 0x7F) << outputShift;
 		
 		outputShift += 7;
@@ -42,6 +40,72 @@ int readVariableLengthQuantity(char *ptr) {
 	} while (ptr-- != originalPtr);
 	
 	return output;
+}
+
+void readMTrkEvent(unsigned char **input, struct mtrkEvent *outputPtr) {
+	outputPtr->deltaTime = readVariableLengthQuantity((char *) *input);
+	
+	unsigned char *originalInputPtr = *input;
+	
+	while (**input & 0x80) {
+		(*input)++;
+	}
+	
+	(*input)++;
+	
+	switch (**input) {
+		case 0xFF:
+			(*input)++;
+	
+			switch (**input) {
+				case 0x03: //Name
+					(*input)++;
+					*input += **input + 1;
+				
+					break;
+			
+				case 0x2f: //End
+					*input += 2;
+			
+					break;
+			
+				case 0x51: //Tempo
+					*input += 5;
+			
+					break;
+			
+				case 0x58: //Time sig.
+					*input += 6;
+				
+					break;
+				
+				default:
+					//Unknown command, error here
+				
+					break;
+			}
+			
+			break;
+			
+		case 0x80: //Note off	
+		case 0x90: //Note on
+			(*input) += 3;
+			
+			break;
+			
+		case 0xC0: //Patch change
+			(*input) += 2;
+			
+			break;
+			
+		default:
+			//Unknown command, error here
+		
+			break;
+	}
+	
+	outputPtr->length = *input - originalInputPtr;
+	memcpy(outputPtr->event, originalInputPtr, outputPtr->length);
 }
 
 int bigEndianInt(int n) {
@@ -62,6 +126,16 @@ int bigEndianShort(short n) {
 	}
 	
 	return o;
+}
+
+void loadFile(FILE *f, char **buffer) {
+	fseek(f, 0, SEEK_END);
+	
+	int length = ftell(f);
+	
+	rewind(f);
+	
+	fread(*buffer, 1, length, f);
 }
 
 bool fileReadable(char *path) {
@@ -127,8 +201,8 @@ int main(int argc, char *argv[]) {
 	
 	char outputBuffer[16384]; //Note a fixed length of buffer is employed
 	
-	struct MThd *outputHeader = (void *) outputBuffer;
-	struct MTrk *outputTrackHeader = (void *) outputBuffer + 14;
+	struct mthd *outputHeader = (void *) outputBuffer;
+	struct mtrk *outputTrackHeader = (void *) outputBuffer + 14;
 	char *trackPtr = (void *) outputBuffer + 14 + 8;
 	
 	strncpy(outputHeader->chunkType, "MThd", 4);
@@ -146,7 +220,7 @@ int main(int argc, char *argv[]) {
 		fseek(inputFile[i - startOfInputs], 14 + 8, SEEK_SET);
 	}
 	
-	
+	//Resume here!
 	
 	for (int i = 0; i < numberOfInputs; i++) {
 		fclose(inputFile[i]);
