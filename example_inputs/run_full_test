@@ -1,0 +1,17 @@
+#!/bin/bash
+
+cd ../mmltomidi
+make clean
+make
+cd ../catmidi
+make clean
+make
+cd ../example_inputs
+
+../mmltomidi/build/mmltomidi -o ./right_hand_1.midi ./right_hand_1
+../mmltomidi/build/mmltomidi -o ./right_hand_2.midi ./right_hand_2
+../mmltomidi/build/mmltomidi -o ./right_hand_3.midi ./right_hand_3
+../mmltomidi/build/mmltomidi -o ./left_hand_1.midi ./left_hand_1
+../mmltomidi/build/mmltomidi -o ./left_hand_2.midi ./left_hand_2
+
+../catmidi/build/catmidi ./right_hand_1.midi ./right_hand_2.midi ./right_hand_3.midi ./left_hand_1.midi ./left_hand_2.midi

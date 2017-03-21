@@ -1,0 +1,7 @@
+#name Pop_Looks_Bach
+#tempo 160
+
+$a r5ccc5cc c5ccc5r5
+$b r5ccc5cc c5cccr6
+
+play l3o5 r9 $a $b r9 r9 r9 r9 r9 r9 r9 r9 $a $b r9 r9 r9

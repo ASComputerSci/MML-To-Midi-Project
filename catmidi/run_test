@@ -1,2 +1,2 @@
 #!/bin/bash
-make clean&&make&&./build/catmidi ./build/test_input.mid
+make clean&&make&&./build/catmidi ./build/test_input.midi

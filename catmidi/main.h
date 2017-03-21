@@ -15,7 +15,7 @@ struct mtrk {
 };
 
 struct mtrkEvent {
-	char event[259]; //Including delta time
+	char event[262]; //Excluding delta time until reassembly
 	short length;
 	int deltaTime;
 };

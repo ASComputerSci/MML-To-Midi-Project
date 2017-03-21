@@ -9,7 +9,7 @@
 extern struct mmlFileStruct processedMmlFile;
 
 char macroTable[26][256]; //Note macro size limit, null terminated
-bool macroEnabled[26];
+bool macroEnabled[26]; //Does not get cleared!
 
 void replaceSubstring(char *source, char *find, char *replace) {
 	//Requires an array allocated by a malloc as an input
@@ -32,8 +32,6 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	source = realloc(source, strlen(source) - matches * strlen(find) + matches * strlen(replace));
 	
 	if (source == NULL) {
-		fprintf(stderr, "Error - memory assigned by malloc could not be reallocated\n");
-		source = NULL;
 		return;
 	}
 	
@@ -138,8 +136,6 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	}
 	
 ^play" "(([cdefgabrov][+-]?[0-9]?)|($[a-z])|[<>]|(p[0-9]{1,2})|(l[0-9])|" ")+(\r|\n|(\r\n)) {
-	//Currently ignores unassigned macros being used
-	
 	char *processedYYText = malloc(strlen(yytext)); //Malloc used for replaceSubstring
 	
 	if (processedYYText == NULL) {
@@ -157,12 +153,17 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	}
 	
 	char macroName[] = "$ ";
-
+	
 	for (char i = 0; i < 26; i++) {
 		if (macroEnabled[i]) {
 			macroName[1] = i + 'a';
 			
 			replaceSubstring(processedYYText, macroName, macroTable[i]);
+			
+			if (processedYYText == NULL) {
+				strcpy(yylval.errorMessage, "Error - memory assigned by malloc could not be reallocated");
+				return ERROR;
+			}
 		}
 	}
 	
@@ -212,13 +213,14 @@ void replaceSubstring(char *source, char *find, char *replace) {
 			}
 			
 		} else if (processedYYText[i] == 'l') {
-			defaultLength = processedYYText[i++] - '0';
+			defaultLength = processedYYText[++i] - '0';
+			i++;
 		
 		} else {
 			i++;
 		}
 	}
-
+	
 	free(processedYYText);
 
 	return PLAY_COMMAND;

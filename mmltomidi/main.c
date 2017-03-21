@@ -179,7 +179,7 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 				;
 				char noteNumber = noteLookup[currentNote.command - 'a'] + 12 * octave + currentNote.accidental + transposition;
 				
-				trackChunkPtr += writeVariableLengthQuantity(trackChunkPtr, 4); //Consider delay
+				trackChunkPtr += writeVariableLengthQuantity(trackChunkPtr, 0); //Consider delay
 				*(trackChunkPtr++) = 0x90;
 				*(trackChunkPtr++) = (currentNote.command == 'r') ? 0 : noteNumber;
 				*(trackChunkPtr++) = (currentNote.command == 'r') ? 0 : velocity;
@@ -266,6 +266,7 @@ int main(int argc, char *argv[]) {
 	processedMmlFile.noteCount = 0;
 	
 	yyin = fopen(argv[(strcmp(argv[1], "-o")) ? 1 : 3], "rb");
+	
 	int yyparseResult = yyparse();
 	fclose(yyin);
 	
@@ -284,7 +285,14 @@ int main(int argc, char *argv[]) {
 	
 	printArray(midiBuffer, midiBufferLength);
 	
-	FILE *outputFile = fopen("output.midi", "wb"); //Add code to use user set file name
+	FILE *outputFile;
+	
+	if (strcmp(argv[1], "-o") == 0) {
+		outputFile = fopen(argv[2], "wb");
+		
+	} else {
+		outputFile = fopen("output.midi", "wb");
+	}
 	
 	if (outputFile == NULL) {
 		fprintf(stderr, "Output file could not be created/opened\n");
