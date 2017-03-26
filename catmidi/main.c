@@ -154,7 +154,7 @@ void readMTrkEvent(unsigned char **input, struct mtrkEvent *outputPtr, char chan
 	memcpy(outputPtr->event, originalInputPtr, outputPtr->length);
 }
 
-int bigEndianInt(int n) {
+int swapIntEndian(int n) {
 	int o = 0;
 	
 	for (int i = 0; i < sizeof(int); i++) {
@@ -164,7 +164,7 @@ int bigEndianInt(int n) {
 	return o;
 }
 
-int bigEndianShort(short n) {
+int swapShortEndian(short n) {
 	int o = 0;
 	
 	for (int i = 0; i < sizeof(short); i++) {
@@ -227,7 +227,7 @@ bool correctCallForm(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
 	if (!correctCallForm(argc, argv)) {
-		fprintf(stderr, "Usage: mmltomidi [-o output_path] [path ...]\n");
+		fprintf(stderr, "Usage: catmidi [-o output_path] [path ...]\n");
 		
 		return 1;
 	}
@@ -257,10 +257,10 @@ int main(int argc, char *argv[]) {
 	char *trackPtr = (void *) outputBuffer + 14 + 8;
 	
 	strncpy(outputHeader->chunkType, "MThd", 4);
-	outputHeader->length = bigEndianInt(6);
+	outputHeader->length = swapIntEndian(6);
 	outputHeader->format = 0;
-	outputHeader->ntrks = bigEndianShort(1);
-	outputHeader->division = bigEndianShort(8);
+	outputHeader->ntrks = swapShortEndian(1);
+	outputHeader->division = swapShortEndian(8);
 	
 	strncpy(outputTrackHeader->chunkType, "MTrk", 4);
 	
@@ -326,8 +326,6 @@ int main(int argc, char *argv[]) {
 		memcpy(trackPtr, inputEvent[lowestDeltaTimeEventIndex].event, inputEvent[lowestDeltaTimeEventIndex].length);
 		trackPtr += inputEvent[lowestDeltaTimeEventIndex].length;
 		
-		printArray(inputEvent[lowestDeltaTimeEventIndex].event, inputEvent[lowestDeltaTimeEventIndex].length);
-		
 		if (memcmp(inputEvent[lowestDeltaTimeEventIndex].event + 1, endOfTrackReference, 3) == 0) {
 			break;
 		}
@@ -339,7 +337,7 @@ int main(int argc, char *argv[]) {
 		free(inputFileBuffer[i]);
 	}
 	
-	outputTrackHeader->length = bigEndianInt(trackPtr - outputBuffer - 14 - 8);
+	outputTrackHeader->length = swapIntEndian(trackPtr - outputBuffer - 14 - 8);
 	
 	fwrite(outputBuffer, 1, trackPtr - outputBuffer, outputFile);
 	fflush(outputFile);

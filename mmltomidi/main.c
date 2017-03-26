@@ -36,7 +36,7 @@ void printArray(char *buffer, int size) {
 	printf("\n");
 }
 
-int bigEndianInt(int n) {
+int swapIntEndian(int n) {
 	int o = 0;
 	
 	for (int i = 0; i < sizeof(int); i++) {
@@ -46,7 +46,7 @@ int bigEndianInt(int n) {
 	return o;
 }
 
-int bigEndianShort(short n) {
+int swapShortEndian(short n) {
 	int o = 0;
 	
 	for (int i = 0; i < sizeof(short); i++) {
@@ -103,32 +103,32 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 	struct midiFileTrackChunk *outputTrack = *dest + 14;
 	
 	strncpy(outputHeader->chunkType, "MThd", 4);
-	outputHeader->length = bigEndianInt(6);
+	outputHeader->length = swapIntEndian(6);
 	outputHeader->format = 0;
-	outputHeader->ntrks = bigEndianShort(1);
-	outputHeader->division = bigEndianShort(8);
+	outputHeader->ntrks = swapShortEndian(1);
+	outputHeader->division = swapShortEndian(8);
 	
 	strncpy(outputTrack->chunkType, "MTrk", 4);
 	char *trackChunkPtr = *dest + 14 + 8;
 	
 	if (midiData->name[0]) {
-		*((int *) trackChunkPtr) = bigEndianInt(0x00FF0300 + strlen(midiData->name)); //Name
+		*((int *) trackChunkPtr) = swapIntEndian(0x00FF0300 + strlen(midiData->name)); //Name
 		trackChunkPtr += 4;
 		strcpy(trackChunkPtr, midiData->name);
 		trackChunkPtr += strlen(midiData->name);
 	}
 	
-	*((int *) trackChunkPtr) = bigEndianInt(0x00FF5804); //Time signature
+	*((int *) trackChunkPtr) = swapIntEndian(0x00FF5804); //Time signature
 	trackChunkPtr += 4;
-	*((int *) trackChunkPtr) = bigEndianInt(0x04021808);
+	*((int *) trackChunkPtr) = swapIntEndian(0x04021808);
 	trackChunkPtr += 4;
 	
-	*((int *) trackChunkPtr) = bigEndianInt(0x00FF5103); //Default tempo
+	*((int *) trackChunkPtr) = swapIntEndian(0x00FF5103); //Default tempo
 	trackChunkPtr += 4;
-	*((int *) trackChunkPtr) = bigEndianInt(30000000 / 120) >> 8;
+	*((int *) trackChunkPtr) = swapIntEndian(30000000 / 120) >> 8;
 	trackChunkPtr += 3;
 	
-	*((int *) trackChunkPtr) = bigEndianInt(0x00C00000); //Default instrument
+	*((int *) trackChunkPtr) = swapIntEndian(0x00C00000); //Default instrument
 	trackChunkPtr += 3;
 	
 	char octave = 4;
@@ -162,15 +162,15 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 				break;
 				
 			case 't':
-				*((int *) trackChunkPtr) = bigEndianInt(0x00FF5103);
+				*((int *) trackChunkPtr) = swapIntEndian(0x00FF5103);
 				trackChunkPtr += 4;
-				*((int *) trackChunkPtr) = bigEndianInt(30000000 / currentNote.modifier) >> 8;
+				*((int *) trackChunkPtr) = swapIntEndian(30000000 / currentNote.modifier) >> 8;
 				trackChunkPtr += 3;
 				
 				break;
 				
 			case 'i':
-				*((int *) trackChunkPtr) = bigEndianInt(0x00C00000 | (currentNote.modifier << 8));
+				*((int *) trackChunkPtr) = swapIntEndian(0x00C00000 | (currentNote.modifier << 8));
 				trackChunkPtr += 3;
 				
 				break;
@@ -194,10 +194,10 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 	}
 	
 	trackChunkPtr += writeVariableLengthQuantity(trackChunkPtr, 0);
-	*((int *) trackChunkPtr) = bigEndianInt(0xFF2F0000); //End of Track
+	*((int *) trackChunkPtr) = swapIntEndian(0xFF2F0000); //End of Track
 	trackChunkPtr += 3;
 	
-	outputTrack->length = bigEndianInt(trackChunkPtr - *dest - 22);
+	outputTrack->length = swapIntEndian(trackChunkPtr - *dest - 22);
 
 	*dest = realloc(*dest, trackChunkPtr - *dest + 1);
 
@@ -210,41 +210,30 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 	return trackChunkPtr - *dest;
 }
 
-bool callValid(int argc, char *argv[]) {
-	//Checks calling syntax is correct
-	//Currently does not check if the input is a directory
+bool fileReadable(char *path) {
+	if (access(path, R_OK)) {
+		fprintf(stderr, "File %s is not readable\n", path);
+		return false;
+	}
+	
+	return true;
+}
 
+bool pathValid(char *path) {
+	//Currently does not error on a directory
+
+	if (access(path, F_OK)) {
+		fprintf(stderr, "File %s does not exist\n", path);
+		return false;
+	}
+	
+	return true;
+}
+
+bool correctCallForm(int argc, char *argv[]) {
 	if ((argc != 2) && (argc != 4)) {
-		printError("Invalid number of arguments");
-	
-		return false;
-	}
-	
-	char inPathIndex = 0;
-	char outPathIndex = 0;
-	
-	if (argc == 2) {
-		inPathIndex = 1;
-	
-	} else if (strcmp(argv[1], "-o") == 0) {
-		inPathIndex = 3;
-		outPathIndex = 2;
+		printError("Invalid number of arguments given");
 		
-	} else {
-		printError("-o switch missing");
-		
-		return false;
-	}
-	
-	if ((inPathIndex != 0) && (access(argv[inPathIndex], F_OK)) && (access(argv[inPathIndex], R_OK))) {
-		printError("Input file cannot be accessed");
-		
-		return false;
-	}
-	
-	if (!access(argv[outPathIndex], F_OK) && access(argv[outPathIndex], W_OK)) {
-		printError("Error - output file cannot be written to");
-	
 		return false;
 	}
 	
@@ -256,17 +245,24 @@ bool callValid(int argc, char *argv[]) {
 int main(int argc, char *argv[]) {
 	printDebug("Debugging enabled\n");
 	
-	if (!callValid(argc, argv)) {
-		printError("Usage: mmltomidi [-o output_path] [file]");
+	if (!correctCallForm(argc, argv)) {
+		printError("Usage: mmltomidi [-o output_path] file");
 		
+		return 1;
+	}
+	
+	bool outputPathGiven = (strcmp(argv[1], "-o")) ? false : true;
+	char *outputPath = (outputPathGiven) ? argv[2] : "output.midi";
+	char *inputPath = (outputPathGiven) ? argv[3] : argv[1];
+
+	if ((!pathValid(inputPath)) || (!fileReadable(inputPath))) {
 		return 1;
 	}
 	
 	processedMmlFile.name[0] = 0;
 	processedMmlFile.noteCount = 0;
 	
-	yyin = fopen(argv[(strcmp(argv[1], "-o")) ? 1 : 3], "rb");
-	
+	yyin = fopen(inputPath, "rb");
 	int yyparseResult = yyparse();
 	fclose(yyin);
 	
@@ -283,19 +279,10 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	
-	printArray(midiBuffer, midiBufferLength);
-	
-	FILE *outputFile;
-	
-	if (strcmp(argv[1], "-o") == 0) {
-		outputFile = fopen(argv[2], "wb");
-		
-	} else {
-		outputFile = fopen("output.midi", "wb");
-	}
+	FILE *outputFile = fopen(outputPath, "wb");
 	
 	if (outputFile == NULL) {
-		fprintf(stderr, "Output file could not be created/opened\n");
+		printError("Output file could not be created/opened");
 		
 		return 1;
 	}
