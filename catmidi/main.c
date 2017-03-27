@@ -86,40 +86,40 @@ void reassembleMTrkEvent(struct mtrkEvent *event) {
 	event->length += offset;
 }
 
-void readMTrkEvent(unsigned char **input, struct mtrkEvent *outputPtr, char channelNumber) {
-	outputPtr->deltaTime = readVariableLengthQuantity((char *) *input);
+void readMTrkEvent(unsigned char *input, struct mtrkEvent *outputPtr, char channelNumber) {
+	outputPtr->deltaTime = readVariableLengthQuantity((char *) input);
 	
-	while (**input & 0x80) {
-		(*input)++;
+	while (*input & 0x80) {
+		input++;
 	}
 	
-	(*input)++;
+	input++;
 	
-	unsigned char *originalInputPtr = *input;
+	unsigned char *originalInputPtr = input;
 
-	switch (**input) {
+	switch (*input) {
 		case 0xFF:
-			(*input)++;
+			input++;
 	
-			switch (**input) {
+			switch (*input) {
 				case 0x03: //Name
-					(*input)++;
-					*input += **input + 1;
+					input++;
+					input += *input + 1;
 				
 					break;
 			
 				case 0x2f: //End
-					*input += 2;
+					input += 2;
 			
 					break;
 			
 				case 0x51: //Tempo
-					*input += 5;
+					input += 5;
 			
 					break;
 			
 				case 0x58: //Time sig.
-					*input += 6;
+					input += 6;
 				
 					break;
 				
@@ -133,14 +133,14 @@ void readMTrkEvent(unsigned char **input, struct mtrkEvent *outputPtr, char chan
 			
 		case 0x80: //Note off	
 		case 0x90: //Note on
-			**input |= channelNumber;
-			(*input) += 3;
+			*input |= channelNumber;
+			input += 3;
 			
 			break;
 			
 		case 0xC0: //Patch change
-			**input |= channelNumber;
-			(*input) += 2;
+			*input |= channelNumber;
+			input += 2;
 			
 			break;
 			
@@ -150,7 +150,7 @@ void readMTrkEvent(unsigned char **input, struct mtrkEvent *outputPtr, char chan
 			break;
 	}
 	
-	outputPtr->length = *input - originalInputPtr;
+	outputPtr->length = input - originalInputPtr;
 	memcpy(outputPtr->event, originalInputPtr, outputPtr->length);
 }
 
@@ -272,7 +272,7 @@ int main(int argc, char *argv[]) {
 		loadFile(argv[i + startOfInputs], &inputFileBuffer[i]);
 		inputFileBufferPtr[i] = inputFileBuffer[i] + 14 + 8; //Offset to start of inputs
 		
-		readMTrkEvent(&inputFileBufferPtr[i], &inputEvent[i], i);
+		readMTrkEvent(inputFileBufferPtr[i], &inputEvent[i], i);
 	}
 	
 	bool nameSet = false;
@@ -306,7 +306,7 @@ int main(int argc, char *argv[]) {
 		
 		if (!memcmp(inputEvent[lowestDeltaTimeEventIndex].event, trackNameReference, 2)) {
 			if (nameSet) {
-				readMTrkEvent(&inputFileBufferPtr[lowestDeltaTimeEventIndex], &inputEvent[lowestDeltaTimeEventIndex], lowestDeltaTimeEventIndex);
+				readMTrkEvent(inputFileBufferPtr[lowestDeltaTimeEventIndex], &inputEvent[lowestDeltaTimeEventIndex], lowestDeltaTimeEventIndex);
 				continue;
 			}
 			
@@ -315,7 +315,7 @@ int main(int argc, char *argv[]) {
 		
 		if (!memcmp(inputEvent[lowestDeltaTimeEventIndex].event, timeSignatureReference, 3)) {
 			if (timeSignatureSet) {
-				readMTrkEvent(&inputFileBufferPtr[lowestDeltaTimeEventIndex], &inputEvent[lowestDeltaTimeEventIndex], lowestDeltaTimeEventIndex);
+				readMTrkEvent(inputFileBufferPtr[lowestDeltaTimeEventIndex], &inputEvent[lowestDeltaTimeEventIndex], lowestDeltaTimeEventIndex);
 				continue;
 			}
 			
@@ -330,7 +330,7 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 
-		readMTrkEvent(&inputFileBufferPtr[lowestDeltaTimeEventIndex], &inputEvent[lowestDeltaTimeEventIndex], lowestDeltaTimeEventIndex);
+		readMTrkEvent(inputFileBufferPtr[lowestDeltaTimeEventIndex], &inputEvent[lowestDeltaTimeEventIndex], lowestDeltaTimeEventIndex);
 	}
 	
 	for (int i = 0; i < numberOfInputs; i++) {
