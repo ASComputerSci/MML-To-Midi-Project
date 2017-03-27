@@ -3,72 +3,42 @@
 #include <stdbool.h>
 #include <unistd.h>
 
-#include <math.h>
-
 #include "main.h"
 #include "mmlFileStruct.h"
 
-#ifndef UNIT_TESTING
-#define printError(s) fprintf(stderr, "%s\n", s)
-#else
-#define printError(s)
-#endif
+struct mmlFileStruct processedMmlFile; //Necessary global to get information from lex.yy.c
+extern FILE *yyin; //For linking to lex.yy.c
+extern bool macroEnabled[26]; //Necessary for clearing
 
-#ifdef DEBUGGING
-#define printDebug(...) fprintf(stderr, __VA_ARGS__);
-#else
-#define printDebug(...);
-#endif
-
-struct mmlFileStruct processedMmlFile; //Necessary global to get information from lex.yy.c, gets cleared in main
-
-void printArray(char *buffer, int size) {
-	//For debugging, remove in final release
-	
-	for (int i = 0; i < size; i++) {
-		if ((i != 0) && (i % (80 / 3) == 0)) {
-			printf("\n");
-		}
-		
-		printf("%02x ", (unsigned char) buffer[i]);
-	}
-	
-	printf("\n");
-}
-
-int swapIntEndian(int n) {
+int swapIntEndianness(int n) {
 	int o = 0;
 	
-	for (int i = 0; i < sizeof(int); i++) {
-		*((char *) &o + sizeof(int) - i - 1) = *((char *) &n + i);
+	for (int i = 0; i < 4; i++) {
+		*((char *) &o - i + 3) = *((char *) &n + i);
 	}
 	
 	return o;
 }
 
-int swapShortEndian(short n) {
+int swapShortEndianness(short n) {
 	int o = 0;
 	
-	for (int i = 0; i < sizeof(short); i++) {
-		*((char *) &o + sizeof(short) - i - 1) = *((char *) &n + i);
+	for (int i = 0; i < 2; i++) {
+		*((char *) &o - i + 1) = *((char *) &n + i);
 	}
 	
 	return o;
 }
 
-int writeVariableLengthQuantity(char *dest, unsigned int n) {
-	//Returns length of variable length quantity written
-	//Writes in big endian
-	
-	if (n == 0) {
-		*dest = 0;
-		
+int writeVariableLengthQuantity(char *ptr, int n) {
+	if (!n) {
+		*ptr = 0;
 		return 1;
 	}
 	
-	int length = sizeof(int);
+	int length = 5;
 	
-	for (int i = sizeof(int) - 1; i >= 0; i--) {
+	for (int i = 4; i >= 0; i--) {
 		if (n >> i * 7) {
 			break;
 			
@@ -78,57 +48,60 @@ int writeVariableLengthQuantity(char *dest, unsigned int n) {
 	}
 	
 	for (int i = length - 1; i >= 0; i--) {
-		if (i == 0) {
-			*(dest + length - i - 1) = (n >> i * 7) & 0x7F;
-		
+		if (i) {
+			*(ptr + length - i - 1) = ((n >> i * 7) & 0x7F) + 0x80;
+			
 		} else {
-			*(dest + length - i - 1) = ((n >> i * 7) & 0x7F) + 0x80;
+			*(ptr + length - i - 1) = (n >> i * 7) & 0x7F;
 		}
 	}
 	
 	return length;
 }
 
-int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
-	//Points dest towards a malloc assigned array, null on error, returns length
+void writeMTrkHeader(struct mtrkHeader *mtrkHeaderPtr, int trackLength) {
+	strncpy(mtrkHeaderPtr->chunkType, "MTrk", 4);
+	mtrkHeaderPtr->length = swapIntEndianness(trackLength);
+}
 
-	*dest = malloc(8192); //Make appropriate estimate!
+void writeMThdHeader(struct mthdHeader *mthdHeaderPtr) {
+	strncpy(mthdHeaderPtr->chunkType, "MThd", 4);
+	mthdHeaderPtr->length = swapIntEndianness(6);
+	mthdHeaderPtr->format = 0;
+	mthdHeaderPtr->ntrks = swapShortEndianness(1);
+	mthdHeaderPtr->division = swapShortEndianness(8);
+}
+
+int generateMIDIFile(char **ptr, struct mmlFileStruct *midiData) {
+	//Points ptr towards a malloc assigned array
 	
-	if (*dest == NULL) {
+	*ptr = malloc(65536);
+	
+	if (*ptr == NULL) {
 		fprintf(stderr, "Error - memory could not be assigned by malloc\n");
 		return NULL;
 	}
 	
-	struct midiFileHeaderChunk *outputHeader = *dest;
-	struct midiFileTrackChunk *outputTrack = *dest + 14;
+	struct mthdHeader *outputMThdHeader = *ptr;
+	struct mtrkHeader *outputMTrkHeader = *ptr + 14;
+	char *trackChunkPtr = *ptr + 22;
 	
-	strncpy(outputHeader->chunkType, "MThd", 4);
-	outputHeader->length = swapIntEndian(6);
-	outputHeader->format = 0;
-	outputHeader->ntrks = swapShortEndian(1);
-	outputHeader->division = swapShortEndian(8);
-	
-	strncpy(outputTrack->chunkType, "MTrk", 4);
-	char *trackChunkPtr = *dest + 14 + 8;
+	writeMThdHeader(outputMThdHeader);
 	
 	if (midiData->name[0]) {
-		*((int *) trackChunkPtr) = swapIntEndian(0x00FF0300 + strlen(midiData->name)); //Name
-		trackChunkPtr += 4;
-		strcpy(trackChunkPtr, midiData->name);
+		memcpy(trackChunkPtr, (char []) {0x00, 0xff, 0x03, strlen(midiData->name)}, 4);
+		strcpy(trackChunkPtr += 4, midiData->name);
 		trackChunkPtr += strlen(midiData->name);
 	}
 	
-	*((int *) trackChunkPtr) = swapIntEndian(0x00FF5804); //Time signature
-	trackChunkPtr += 4;
-	*((int *) trackChunkPtr) = swapIntEndian(0x04021808);
-	trackChunkPtr += 4;
+	memcpy(trackChunkPtr, (char []) {0x00, 0xFF, 0x58, 0x04, 0x04, 0x02, 0x18, 0x08}, 8); //Time signature
+	trackChunkPtr += 8;
 	
-	*((int *) trackChunkPtr) = swapIntEndian(0x00FF5103); //Default tempo
-	trackChunkPtr += 4;
-	*((int *) trackChunkPtr) = swapIntEndian(30000000 / 120) >> 8;
+	memcpy(trackChunkPtr, (char []) {0x00, 0xFF, 0x51, 0x03}, 4); //Tempo
+	*((int *) (trackChunkPtr += 4)) = swapIntEndianness(30000000 / 120) >> 8;
 	trackChunkPtr += 3;
 	
-	*((int *) trackChunkPtr) = swapIntEndian(0x00C00000); //Default instrument
+	memcpy(trackChunkPtr, (char []) {0x00, 0xC0, 0x00}, 3); //Default instrument
 	trackChunkPtr += 3;
 	
 	char octave = 4;
@@ -146,11 +119,11 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 				break;
 				
 			case '<':
-				octave -= (octave == 0) ? 0 : 1;
+				octave -= octave != 0;
 				break;
 				
 			case '>':
-				octave += (octave == 9) ? 0 : 1;
+				octave += octave != 9;
 				break;
 				
 			case 'p':
@@ -162,15 +135,14 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 				break;
 				
 			case 't':
-				*((int *) trackChunkPtr) = swapIntEndian(0x00FF5103);
-				trackChunkPtr += 4;
-				*((int *) trackChunkPtr) = swapIntEndian(30000000 / currentNote.modifier) >> 8;
+				memcpy(trackChunkPtr, (char []) {0x00, 0xFF, 0x51, 0x03}, 4);
+				*((int *) (trackChunkPtr += 4)) = swapIntEndianness(30000000 / currentNote.modifier) >> 8;
 				trackChunkPtr += 3;
 				
 				break;
 				
 			case 'i':
-				*((int *) trackChunkPtr) = swapIntEndian(0x00C00000 | (currentNote.modifier << 8));
+				memcpy(trackChunkPtr, (char []) {0x00, 0xC0, currentNote.modifier}, 3);
 				trackChunkPtr += 3;
 				
 				break;
@@ -179,35 +151,31 @@ int generateMIDIFile(char **dest, struct mmlFileStruct *midiData) {
 				;
 				char noteNumber = noteLookup[currentNote.command - 'a'] + 12 * octave + currentNote.accidental + transposition;
 				
-				trackChunkPtr += writeVariableLengthQuantity(trackChunkPtr, 0); //Consider delay
-				*(trackChunkPtr++) = 0x90;
-				*(trackChunkPtr++) = (currentNote.command == 'r') ? 0 : noteNumber;
-				*(trackChunkPtr++) = (currentNote.command == 'r') ? 0 : velocity;
+				memcpy(trackChunkPtr, (char []) {0x00, 0x90, (currentNote.command != 'r') * noteNumber, (currentNote.command != 'r') * velocity}, 4);
+				trackChunkPtr += 4;
 				
 				trackChunkPtr += writeVariableLengthQuantity(trackChunkPtr, deltaTimeLookup[currentNote.modifier]);
-				*(trackChunkPtr++) = 0x80;
-				*(trackChunkPtr++) = (currentNote.command == 'r') ? 0 : noteNumber;
-				*(trackChunkPtr++) = (currentNote.command == 'r') ? 0 : velocity;
+				memcpy(trackChunkPtr, (char []) {0x80, (currentNote.command != 'r') * noteNumber, (currentNote.command != 'r') * velocity}, 3);
+				trackChunkPtr += 3;
 				
 				break;
 		}
 	}
 	
-	trackChunkPtr += writeVariableLengthQuantity(trackChunkPtr, 0);
-	*((int *) trackChunkPtr) = swapIntEndian(0xFF2F0000); //End of Track
-	trackChunkPtr += 3;
+	memcpy(trackChunkPtr, (char []) {0x00, 0xFF, 0x2F, 0x00}, 4);
+	trackChunkPtr += 4;
 	
-	outputTrack->length = swapIntEndian(trackChunkPtr - *dest - 22);
+	writeMTrkHeader(outputMTrkHeader, trackChunkPtr - *ptr - 22);
 
-	*dest = realloc(*dest, trackChunkPtr - *dest + 1);
+	*ptr = realloc(*ptr, trackChunkPtr - *ptr + 1);
 
-	if (*dest == NULL) {
+	if (*ptr == NULL) {
 		fprintf(stderr, "Error - malloc'd array could not be reallocated\n");
 		
 		return NULL;
 	}
 	
-	return trackChunkPtr - *dest;
+	return trackChunkPtr - *ptr;
 }
 
 bool fileReadable(char *path) {
@@ -232,7 +200,7 @@ bool pathValid(char *path) {
 
 bool correctCallForm(int argc, char *argv[]) {
 	if ((argc != 2) && (argc != 4)) {
-		printError("Invalid number of arguments given");
+		fprintf(stderr, "Invalid number of arguments given\n");
 		
 		return false;
 	}
@@ -240,18 +208,14 @@ bool correctCallForm(int argc, char *argv[]) {
 	return true;
 }
 
-#ifndef UNIT_TESTING
-
 int main(int argc, char *argv[]) {
-	printDebug("Debugging enabled\n");
-	
 	if (!correctCallForm(argc, argv)) {
-		printError("Usage: mmltomidi [-o output_path] file");
+		fprintf(stderr, "Usage: mmltomidi [-o output_path] file\n");
 		
 		return 1;
 	}
 	
-	bool outputPathGiven = (strcmp(argv[1], "-o")) ? false : true;
+	bool outputPathGiven = !strcmp(argv[1], "-o");
 	char *outputPath = (outputPathGiven) ? argv[2] : "output.midi";
 	char *inputPath = (outputPathGiven) ? argv[3] : argv[1];
 
@@ -259,15 +223,15 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	
-	processedMmlFile.name[0] = 0;
-	processedMmlFile.noteCount = 0;
+	memset(&processedMmlFile, 0, sizeof(processedMmlFile));
+	memset(macroEnabled, 0, 26);
 	
 	yyin = fopen(inputPath, "rb");
 	int yyparseResult = yyparse();
 	fclose(yyin);
 	
 	if (yyparseResult == 1) {
-		printError("Syntax error encountered by parser - terminating\n");
+		fprintf(stderr, "Syntax error encountered by parser - terminating\n");
 		
 		return 1;
 	}
@@ -282,7 +246,7 @@ int main(int argc, char *argv[]) {
 	FILE *outputFile = fopen(outputPath, "wb");
 	
 	if (outputFile == NULL) {
-		printError("Output file could not be created/opened");
+		fprintf(stderr, "Output file could not be created/opened\n");
 		
 		return 1;
 	}
@@ -294,5 +258,3 @@ int main(int argc, char *argv[]) {
 
 	return 0;
 }
-
-#endif

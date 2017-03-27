@@ -1,10 +1,8 @@
 #name Pop_Looks_Bach
-#tempo 160
+#tempo 140
 
 $a egdgcg<b>g cgdge
 $b r5eef5ff e5eef5r5
 $c r5eef5ff e5eefo5gfg
 
-play l3o4 r9 $b $c $a<g>c<b p5$ap0>cfe< p10$ap0g>gf edefgedc dgegfd<bg $b $c $a<g>c<b p5$a
-
-##play r9 <g>c<be r9
+play l3o4 r9 $b $c $a<g>c<b p5$ap0>cfe< p10 egdgc+g<b>gc+gdge p0g>gf edefgedc dgegfd<bg $b $c $a<g>c<b p5$a 

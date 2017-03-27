@@ -2,11 +2,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#if DEBUGGING
-#define YYDEBUG 1
-int yydebug = 1;
-#endif
-
 bool nameSet = false;
 
 void yyerror(char *s) {

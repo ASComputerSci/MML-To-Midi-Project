@@ -4,15 +4,15 @@
 //Necessary for only one copy of the struct definition
 
 struct note {
-	char command; //Letter
+	char command;
 	char accidental; //-1 for flat, 1 for sharp
-	unsigned char modifier; //Number after
+	unsigned char modifier;
 };
 
 struct mmlFileStruct {
 	char name[256]; //Null terminated
 	
-	struct note notes[16384]; //Observe size limit
+	struct note notes[16384];
 	int noteCount;
 }; 
 

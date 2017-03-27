@@ -1,7 +1,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-struct mthd {
+struct mthdHeader {
 	char chunkType[4];
 	int length;
 	short format;
@@ -9,13 +9,13 @@ struct mthd {
 	short division;
 };
 
-struct mtrk {
+struct mtrkHeader {
 	char chunkType[4];
 	int length;
 };
 
 struct mtrkEvent {
-	char event[262]; //Excluding delta time until reassembly
+	char event[259];
 	short length;
 	int deltaTime;
 };

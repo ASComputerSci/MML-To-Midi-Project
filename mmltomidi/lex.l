@@ -9,20 +9,20 @@
 extern struct mmlFileStruct processedMmlFile;
 
 char macroTable[26][256]; //Note macro size limit, null terminated
-bool macroEnabled[26]; //Does not get cleared!
+bool macroEnabled[26];
 
 void replaceSubstring(char *source, char *find, char *replace) {
-	//Requires an array allocated by a malloc as an input
+	//Requires source to point to a malloc assigned array
 	
 	int matches = 0;
 	char *i = strstr(source, find);
 	
 	while (i != NULL) {
 		matches++;
-		i = strstr(i + 1, find); //
+		i = strstr(i + 1, find);
 	}
 	
-	if (matches == 0) {
+	if (!matches) {
 		return;
 	}
 	
@@ -31,12 +31,13 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	
 	source = realloc(source, strlen(source) - matches * strlen(find) + matches * strlen(replace));
 	
+	int sourceLen = strlen(source) - matches * strlen(find) + matches * strlen(replace);
+	
 	if (source == NULL) {
 		return;
 	}
 	
-	int oldIndex = 0;
-	int newIndex = 0;
+	int oldIndex = 0, newIndex = 0;
 	char *nextMatch = NULL;
 	
 	while (oldIndex != strlen(originalSource)) {
@@ -105,7 +106,7 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	
 	while (yytext[i] != '\n' && yytext[i] != '\r') {
 		if (i == 260) {
-			strcpy(yylval.errorMessage, "Error - name set was too long: limit is 254");
+			strcpy(yylval.errorMessage, "Error - name set was too long: limit is 255");
 			return ERROR;
 		}
 		
@@ -136,7 +137,7 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	}
 	
 ^play" "(([cdefgabrov][+-]?[0-9]?)|($[a-z])|[<>]|(p[0-9]{1,2})|(l[0-9])|" ")+(\r|\n|(\r\n)) {
-	char *processedYYText = malloc(strlen(yytext)); //Malloc used for replaceSubstring
+	char *processedYYText = malloc(strlen(yytext)); //Malloc needed for replaceSubstring
 	
 	if (processedYYText == NULL) {
 		strcpy(yylval.errorMessage, "Error - memory could not be malloc'd");
@@ -152,13 +153,9 @@ void replaceSubstring(char *source, char *find, char *replace) {
 		}
 	}
 	
-	char macroName[] = "$ ";
-	
 	for (char i = 0; i < 26; i++) {
 		if (macroEnabled[i]) {
-			macroName[1] = i + 'a';
-			
-			replaceSubstring(processedYYText, macroName, macroTable[i]);
+			replaceSubstring(processedYYText, (char []) {'$', i + 'a', 0x00}, macroTable[i]);
 			
 			if (processedYYText == NULL) {
 				strcpy(yylval.errorMessage, "Error - memory assigned by malloc could not be reallocated");
@@ -167,24 +164,24 @@ void replaceSubstring(char *source, char *find, char *replace) {
 		}
 	}
 	
-	int i = 5; //Needs better name
+	int index = 5;
 	char defaultLength = 5;
 	
-	while (i < strlen(processedYYText)) {
-		if (strchr("cdefgabrov", processedYYText[i]) != NULL) {
-			processedMmlFile.notes[processedMmlFile.noteCount].command = processedYYText[i++];
+	while (index < strlen(processedYYText)) {
+		if (strchr("cdefgabrov", processedYYText[index]) != NULL) {
+			processedMmlFile.notes[processedMmlFile.noteCount].command = processedYYText[index++];
 			processedMmlFile.notes[processedMmlFile.noteCount].accidental = 0;
 			processedMmlFile.notes[processedMmlFile.noteCount].modifier = defaultLength;
 			
 			while (1) {
-				if ((i < strlen(processedYYText)) && (strchr("+-", processedYYText[i]) != NULL)) {
-					processedMmlFile.notes[processedMmlFile.noteCount].accidental = (processedYYText[i++] == '+') ? 1 : -1;
+				if ((index < strlen(processedYYText)) && (strchr("+-", processedYYText[index]) != NULL)) {
+					processedMmlFile.notes[processedMmlFile.noteCount].accidental = (processedYYText[index++] == '+') ? 1 : -1;
 					
 					continue;
 				}
 				
-				if ((i < strlen(processedYYText)) && (strchr("0123456789", processedYYText[i]) != NULL)) {
-					processedMmlFile.notes[processedMmlFile.noteCount].modifier = processedYYText[i++] - '0';
+				if ((index < strlen(processedYYText)) && (strchr("0123456789", processedYYText[index]) != NULL)) {
+					processedMmlFile.notes[processedMmlFile.noteCount].modifier = processedYYText[index++] - '0';
 					
 					continue;
 				}
@@ -194,33 +191,33 @@ void replaceSubstring(char *source, char *find, char *replace) {
 			
 			processedMmlFile.noteCount++;
 			
-		} else if (strchr("<>", processedYYText[i]) != NULL) {
-			processedMmlFile.notes[processedMmlFile.noteCount++].command = processedYYText[i++];
+		} else if (strchr("<>", processedYYText[index]) != NULL) {
+			processedMmlFile.notes[processedMmlFile.noteCount++].command = processedYYText[index++];
 			
-		} else if (processedYYText[i] == 'p') {
-			processedMmlFile.notes[processedMmlFile.noteCount].command = processedYYText[i++];
+		} else if (processedYYText[index] == 'p') {
+			processedMmlFile.notes[processedMmlFile.noteCount].command = processedYYText[index++];
 			processedMmlFile.notes[processedMmlFile.noteCount].modifier = 0;
 			
-			if ((i + 1 < strlen(processedYYText)) && (strchr("0123456789", processedYYText[i + 1]) != NULL)) {
-				processedMmlFile.notes[processedMmlFile.noteCount].modifier = (processedYYText[i++] - '0') * 10;
+			if ((index + 1 < strlen(processedYYText)) && (strchr("0123456789", processedYYText[index + 1]) != NULL)) {
+				processedMmlFile.notes[processedMmlFile.noteCount].modifier = (processedYYText[index++] - '0') * 10;
 			}
 			
-			processedMmlFile.notes[processedMmlFile.noteCount].modifier += processedYYText[i++] - '0';
+			processedMmlFile.notes[processedMmlFile.noteCount].modifier += processedYYText[index++] - '0';
 			
 			if (processedMmlFile.notes[processedMmlFile.noteCount++].modifier > 11) {
 				strcpy(yylval.errorMessage, "Transposition set too high - only values from 0 to 11 are valid");
 				return ERROR;
 			}
 			
-		} else if (processedYYText[i] == 'l') {
-			defaultLength = processedYYText[++i] - '0';
-			i++;
+		} else if (processedYYText[index] == 'l') {
+			defaultLength = processedYYText[++index] - '0';
+			index++;
 		
 		} else {
-			i++;
+			index++;
 		}
 	}
-	
+
 	free(processedYYText);
 
 	return PLAY_COMMAND;
