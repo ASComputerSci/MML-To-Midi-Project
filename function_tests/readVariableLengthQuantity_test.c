@@ -5,22 +5,22 @@ struct testCase {
 	int expectedOutput;
 };
 
-int readVariableLengthQuantity(char *ptr) {
-	char *originalPtr = ptr;
+int readVariableLengthQuantity(char *inputPtr) {
+	char *workingPtr = inputPtr;
 	
-	while (*(ptr) & 0x80) {
-		ptr++;
+	while (*workingPtr & 0x80) {
+		workingPtr++;
 	}
 	
 	int output = 0;
 	int outputShift = 0;
 
 	do {
-		output |= (*ptr & 0x7F) << outputShift;
+		output |= (*workingPtr & 0x7F) << outputShift;
 		
 		outputShift += 7;
 		
-	} while (ptr-- != originalPtr);
+	} while (workingPtr-- != inputPtr);
 
 	return output;
 }

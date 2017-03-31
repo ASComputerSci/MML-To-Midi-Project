@@ -56,6 +56,16 @@ int writeVariableLengthQuantity(char *outputPtr, int input) {
 }
 
 char readMTrkEvent(unsigned char **inputPP, struct mtrkEvent *outputPtr, char channelNumber) {
+	outputPtr->deltaTime = readVariableLengthQuantity(*inputPP);
+	
+	Read event into outputPtr
+	
+	Replace channel number in appropriate commands
+	
+	outputPtr->length = length of event stored
+}
+
+char readMTrkEvent(unsigned char **inputPP, struct mtrkEvent *outputPtr, char channelNumber) {
 	//Returns non-zero on error
 	
 	outputPtr->deltaTime = readVariableLengthQuantity((char *) *inputPP);
@@ -208,7 +218,7 @@ int combineMIDIFiles(char *outputBuffer, unsigned char *inputBuffer[], char inpu
 		
 		soonestEvent = &inputEvent[soonestEventIndex];
 		
-		if (!memcmp(soonestEvent->event, (char []) {0xFF, 0x03}, 2)) {
+		if (!memcmp(soonestEvent->event, (char []) {0xFF, 0x03}, 2)) { //Name setting event
 			if (nameSet) {
 				if (readMTrkEvent(&inputBufferPtr[soonestEventIndex], &inputEvent[soonestEventIndex], soonestEventIndex)) {
 					return 0;
@@ -220,7 +230,7 @@ int combineMIDIFiles(char *outputBuffer, unsigned char *inputBuffer[], char inpu
 			nameSet = true;
 		}
 		
-		if (!memcmp(soonestEvent->event, (char []) {0xFF, 0x58, 0x04}, 3)) {
+		if (!memcmp(soonestEvent->event, (char []) {0xFF, 0x58, 0x04}, 3)) { //Time signature setting event
 			if (timeSignatureSet) {
 				if (readMTrkEvent(&inputBufferPtr[soonestEventIndex], &inputEvent[soonestEventIndex], soonestEventIndex)) {
 					return 0;
@@ -236,7 +246,7 @@ int combineMIDIFiles(char *outputBuffer, unsigned char *inputBuffer[], char inpu
 		memcpy(trackPtr, soonestEvent->event, soonestEvent->length);
 		trackPtr += soonestEvent->length;
 		
-		if (memcmp(soonestEvent->event, (char []) {0xFF, 0x2F, 0x00}, 3) == 0) {
+		if (memcmp(soonestEvent->event, (char []) {0xFF, 0x2F, 0x00}, 3) == 0) { //End of track event	
 			break;
 		}
 		
