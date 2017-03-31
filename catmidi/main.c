@@ -6,36 +6,36 @@
 
 #include "main.h"
 
-int readVariableLengthQuantity(char *ptr) {
-	char *originalPtr = ptr;
+int readVariableLengthQuantity(char *inputPtr) {
+	char *workingPtr = inputPtr;
 	
-	while (*(ptr) & 0x80) {
-		ptr++;
+	while (*workingPtr & 0x80) {
+		workingPtr++;
 	}
 	
 	int output = 0;
 	int outputShift = 0;
 
 	do {
-		output |= (*ptr & 0x7F) << outputShift;
+		output |= (*workingPtr & 0x7F) << outputShift;
 		
 		outputShift += 7;
 		
-	} while (ptr-- != originalPtr);
+	} while (workingPtr-- != inputPtr);
 
 	return output;
 }
 
-int writeVariableLengthQuantity(char *ptr, int n) {
-	if (!n) {
-		*ptr = 0;
+int writeVariableLengthQuantity(char *outputPtr, int input) {
+	if (input == 0) {
+		*outputPtr = 0;
 		return 1;
 	}
 	
 	int length = 5;
 	
 	for (int i = 4; i >= 0; i--) {
-		if (n >> i * 7) {
+		if (input >> i * 7) {
 			break;
 			
 		} else {
@@ -44,103 +44,107 @@ int writeVariableLengthQuantity(char *ptr, int n) {
 	}
 	
 	for (int i = length - 1; i >= 0; i--) {
-		if (i) {
-			*(ptr + length - i - 1) = ((n >> i * 7) & 0x7F) + 0x80;
+		if (i != 0) {
+			*(outputPtr + length - i - 1) = ((input >> i * 7) & 0x7F) + 0x80;
 			
 		} else {
-			*(ptr + length - i - 1) = (n >> i * 7) & 0x7F;
+			*(outputPtr + length - i - 1) = (input >> i * 7) & 0x7F;
 		}
 	}
 	
 	return length;
 }
 
-void readMTrkEvent(unsigned char **input, struct mtrkEvent *outputPtr, char channelNumber) {
-	outputPtr->deltaTime = readVariableLengthQuantity((char *) *input);
+char readMTrkEvent(unsigned char **inputPP, struct mtrkEvent *outputPtr, char channelNumber) {
+	//Returns non-zero on error
+	
+	outputPtr->deltaTime = readVariableLengthQuantity((char *) *inputPP);
 
-	while (**input & 0x80) {
-		(*input)++;
+	while (**inputPP & 0x80) {
+		(*inputPP)++;
 	}
 	
-	(*input)++;
+	(*inputPP)++;
 	
-	unsigned char *originalInputPtr = *input;
+	unsigned char *originalPtr = *inputPP;
 
-	switch (**input) {
+	switch (**inputPP) {
 		case 0xFF:
-			(*input)++;
+			(*inputPP)++;
 	
-			switch (**input) {
+			switch (**inputPP) {
 				case 0x03: //Name
-					(*input)++;
-					*input += **input + 1;
+					(*inputPP)++;
+					*inputPP += **inputPP + 1;
 				
 					break;
 			
 				case 0x2f: //End
-					*input += 2;
+					*inputPP += 2;
 			
 					break;
 			
 				case 0x51: //Tempo
-					*input += 5;
+					*inputPP += 5;
 			
 					break;
 			
 				case 0x58: //Time sig.
-					*input += 6;
+					*inputPP += 6;
 				
 					break;
 				
 				default:
-					//Unknown command, error here
+					fprintf(stderr, "Unknown MTrk event encountered\n");
 				
-					break;
+					return 1;
 			}
 			
 			break;
 			
 		case 0x80: //Note off	
 		case 0x90: //Note on
-			**input |= channelNumber;
-			*input += 3;
+			**inputPP |= channelNumber;
+			*inputPP += 3;
 			
 			break;
 			
 		case 0xC0: //Patch change
-			**input |= channelNumber;
-			*input += 2;
+			**inputPP |= channelNumber;
+			*inputPP += 2;
 			
 			break;
 			
 		default:
-			//Unknown command, error here
+			fprintf(stderr, "Unknown MTrk event encountered\n");
 		
-			break;
+			return 1;
 	}
 
-	outputPtr->length = *input - originalInputPtr;
-	memcpy(outputPtr->event, originalInputPtr, outputPtr->length);
+	outputPtr->length = *inputPP - originalPtr;
+	memcpy(outputPtr->event, originalPtr, outputPtr->length);
+	
+	return 0;
 }
 
-int swapIntEndianness(int n) {
-	int o = 0;
+int swapIntEndianness(int input) {
+	int output = 0;
 	
 	for (int i = 0; i < sizeof(int); i++) {
-		*((char *) &o + sizeof(int) - i - 1) = *((char *) &n + i);
+		*((char *) &output + sizeof(int) - i - 1) = *((char *) &input + i);
 	}
 	
-	return o;
+	return output;
 }
 
-int swapShortEndianness(short n) {
-	int o = 0;
+int swapShortEndianness(short input) {
+	int output = 0;
 	
 	for (int i = 0; i < sizeof(short); i++) {
-		*((char *) &o + sizeof(short) - i - 1) = *((char *) &n + i);
+		*((char *) &output + sizeof(short) - i - 1) = *((char *) &input + i);
 	}
 	
-	return o;
+	return output;
 }
 
 void writeMTrkHeader(struct mtrkHeader *mtrkHeaderPtr, int trackLength) {
@@ -157,6 +161,8 @@ void writeMThdHeader(struct mthdHeader *mthdHeaderPtr) {
 }
 
 int combineMIDIFiles(char *outputBuffer, unsigned char *inputBuffer[], char inputBufferCount) {
+	//Returns zero on error
+	
 	struct mthdHeader *outputMThdHeader = (void *) outputBuffer;
 	struct mtrkHeader *outputMTrkHeader = (void *) outputBuffer + 14;
 	char *trackPtr = (void *) outputBuffer + 22;
@@ -168,7 +174,10 @@ int combineMIDIFiles(char *outputBuffer, unsigned char *inputBuffer[], char inpu
 	
 	for (int i = 0; i < inputBufferCount; i++) {
 		inputBufferPtr[i] = inputBuffer[i] + 22;
-		readMTrkEvent(&inputBufferPtr[i], &inputEvent[i], i);
+		
+		if (readMTrkEvent(&inputBufferPtr[i], &inputEvent[i], i)) {
+			return 0;
+		}
 	}
 	
 	bool nameSet = false;
@@ -201,7 +210,10 @@ int combineMIDIFiles(char *outputBuffer, unsigned char *inputBuffer[], char inpu
 		
 		if (!memcmp(soonestEvent->event, (char []) {0xFF, 0x03}, 2)) {
 			if (nameSet) {
-				readMTrkEvent(&inputBufferPtr[soonestEventIndex], &inputEvent[soonestEventIndex], soonestEventIndex);
+				if (readMTrkEvent(&inputBufferPtr[soonestEventIndex], &inputEvent[soonestEventIndex], soonestEventIndex)) {
+					return 0;
+				}
+				
 				continue;
 			}
 
@@ -210,7 +222,10 @@ int combineMIDIFiles(char *outputBuffer, unsigned char *inputBuffer[], char inpu
 		
 		if (!memcmp(soonestEvent->event, (char []) {0xFF, 0x58, 0x04}, 3)) {
 			if (timeSignatureSet) {
-				readMTrkEvent(&inputBufferPtr[soonestEventIndex], &inputEvent[soonestEventIndex], soonestEventIndex);
+				if (readMTrkEvent(&inputBufferPtr[soonestEventIndex], &inputEvent[soonestEventIndex], soonestEventIndex)) {
+					return 0;
+				}
+				
 				continue;
 			}
 			
@@ -225,7 +240,9 @@ int combineMIDIFiles(char *outputBuffer, unsigned char *inputBuffer[], char inpu
 			break;
 		}
 		
-		readMTrkEvent(&inputBufferPtr[soonestEventIndex], &inputEvent[soonestEventIndex], soonestEventIndex);
+		if (readMTrkEvent(&inputBufferPtr[soonestEventIndex], &inputEvent[soonestEventIndex], soonestEventIndex)) {
+			return 0;
+		}
 	}
 	
 	writeMTrkHeader(outputMTrkHeader, trackPtr - outputBuffer - 22);
@@ -312,6 +329,10 @@ int main(int argc, char *argv[]) {
 	
 	for (int i = 0; i < numberOfInputs; i++) {
 		free(inputBuffer[i]);
+	}
+	
+	if (outputBufferLength == 0) {
+		return 1;
 	}
 	
 	FILE *outputFile = fopen((outputPathGiven) ? argv[2] : "./output.midi", "wb");

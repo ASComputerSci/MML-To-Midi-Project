@@ -10,36 +10,36 @@ struct mmlFileStruct processedMmlFile; //Necessary global to get information fro
 extern FILE *yyin; //For linking to lex.yy.c
 extern bool macroEnabled[26]; //Necessary for clearing
 
-int swapIntEndianness(int n) {
-	int o = 0;
+int swapIntEndianness(int input) {
+	int output = 0;
 	
 	for (int i = 0; i < 4; i++) {
-		*((char *) &o - i + 3) = *((char *) &n + i);
+		*((char *) &output - i + 3) = *((char *) &input + i);
 	}
 	
-	return o;
+	return output;
 }
 
-int swapShortEndianness(short n) {
-	int o = 0;
+int swapShortEndianness(short input) {
+	int output = 0;
 	
 	for (int i = 0; i < 2; i++) {
-		*((char *) &o - i + 1) = *((char *) &n + i);
+		*((char *) &output - i + 1) = *((char *) &input + i);
 	}
 	
-	return o;
+	return output;
 }
 
-int writeVariableLengthQuantity(char *ptr, int n) {
-	if (!n) {
-		*ptr = 0;
+int writeVariableLengthQuantity(char *outputPtr, int input) {
+	if (input == 0) {
+		*outputPtr = 0;
 		return 1;
 	}
 	
 	int length = 5;
 	
 	for (int i = 4; i >= 0; i--) {
-		if (n >> i * 7) {
+		if (input >> i * 7) {
 			break;
 			
 		} else {
@@ -48,11 +48,11 @@ int writeVariableLengthQuantity(char *ptr, int n) {
 	}
 	
 	for (int i = length - 1; i >= 0; i--) {
-		if (i) {
-			*(ptr + length - i - 1) = ((n >> i * 7) & 0x7F) + 0x80;
+		if (i != 0) {
+			*(outputPtr + length - i - 1) = ((input >> i * 7) & 0x7F) + 0x80;
 			
 		} else {
-			*(ptr + length - i - 1) = (n >> i * 7) & 0x7F;
+			*(outputPtr + length - i - 1) = (input >> i * 7) & 0x7F;
 		}
 	}
 	
@@ -72,19 +72,19 @@ void writeMThdHeader(struct mthdHeader *mthdHeaderPtr) {
 	mthdHeaderPtr->division = swapShortEndianness(8);
 }
 
-int generateMIDIFile(char **ptr, struct mmlFileStruct *midiData) {
-	//Points ptr towards a malloc assigned array
+int generateMIDIFile(char **outputPtr, struct mmlFileStruct *midiData) {
+	//Points outputPtr towards a malloc assigned array
 	
-	*ptr = malloc(65536);
+	*outputPtr = malloc(65536);
 	
-	if (*ptr == NULL) {
+	if (*outputPtr == NULL) {
 		fprintf(stderr, "Error - memory could not be assigned by malloc\n");
 		return NULL;
 	}
 	
-	struct mthdHeader *outputMThdHeader = *ptr;
-	struct mtrkHeader *outputMTrkHeader = *ptr + 14;
-	char *trackChunkPtr = *ptr + 22;
+	struct mthdHeader *outputMThdHeader = *outputPtr;
+	struct mtrkHeader *outputMTrkHeader = *outputPtr + 14;
+	char *trackChunkPtr = *outputPtr + 22;
 	
 	writeMThdHeader(outputMThdHeader);
 	
@@ -165,17 +165,17 @@ int generateMIDIFile(char **ptr, struct mmlFileStruct *midiData) {
 	memcpy(trackChunkPtr, (char []) {0x00, 0xFF, 0x2F, 0x00}, 4);
 	trackChunkPtr += 4;
 	
-	writeMTrkHeader(outputMTrkHeader, trackChunkPtr - *ptr - 22);
+	writeMTrkHeader(outputMTrkHeader, trackChunkPtr - *outputPtr - 22);
 
-	*ptr = realloc(*ptr, trackChunkPtr - *ptr + 1);
+	*outputPtr = realloc(*outputPtr, trackChunkPtr - *outputPtr + 1);
 
-	if (*ptr == NULL) {
+	if (*outputPtr == NULL) {
 		fprintf(stderr, "Error - malloc'd array could not be reallocated\n");
 		
 		return NULL;
 	}
 	
-	return trackChunkPtr - *ptr;
+	return trackChunkPtr - *outputPtr;
 }
 
 bool fileReadable(char *path) {

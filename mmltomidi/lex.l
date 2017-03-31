@@ -8,7 +8,7 @@
 
 extern struct mmlFileStruct processedMmlFile;
 
-char macroTable[26][256]; //Note macro size limit, null terminated
+char macroTable[26][256]; //Null terminated
 bool macroEnabled[26];
 
 void replaceSubstring(char *source, char *find, char *replace) {
@@ -102,10 +102,18 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	}
 	
 ^#name" "[a-zA-Z0-9_]+(\r|\n|(\r\n)) {
+	static bool nameSet = false;
+	
+	if (nameSet) {
+		strcpy(yylval.errorMessage, "Error - name set more than once");
+		return ERROR;
+	}
+	
+	nameSet = true;
 	int i = 5;
 	
 	while (yytext[i] != '\n' && yytext[i] != '\r') {
-		if (i == 260) {
+		if (i == 261) {
 			strcpy(yylval.errorMessage, "Error - name set was too long: limit is 255");
 			return ERROR;
 		}
@@ -137,7 +145,7 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	}
 	
 ^play" "(([cdefgabrov][+-]?[0-9]?)|($[a-z])|[<>]|(p[0-9]{1,2})|(l[0-9])|" ")+(\r|\n|(\r\n)) {
-	char *processedYYText = malloc(strlen(yytext)); //Malloc needed for replaceSubstring
+	char *processedYYText = malloc(strlen(yytext)); //Malloc required for replaceSubstring
 	
 	if (processedYYText == NULL) {
 		strcpy(yylval.errorMessage, "Error - memory could not be malloc'd");

@@ -2,8 +2,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-bool nameSet = false;
-
 void yyerror(char *s) {
 	fprintf(stderr, "%s\n", s);
 }
@@ -41,15 +39,7 @@ line:	LINE_BREAK
 	|	COMMENT
 	|	TEMPO_SET	
 	|	INSTRUMENT_SET
-	|	NAME_SET {
-		if (nameSet) {
-			yyerror("Error - name set more than once");
-			YYERROR;
-		
-		} else {
-			nameSet = true;
-		}
-	}
+	|	NAME_SET
 	|	MACRO_ASSIGNED
 	|	PLAY_COMMAND
 	|	ERROR {

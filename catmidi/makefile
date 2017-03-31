@@ -1,6 +1,6 @@
 BUILD_DIR = ./build
 STD = -std=c99
-OPTI = -O0
+OPTI = -O3
 EXE = catmidi
 
 $(EXE): main.o
