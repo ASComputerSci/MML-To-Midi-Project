@@ -56,16 +56,6 @@ int writeVariableLengthQuantity(char *outputPtr, int input) {
 }
 
 char readMTrkEvent(unsigned char **inputPP, struct mtrkEvent *outputPtr, char channelNumber) {
-	outputPtr->deltaTime = readVariableLengthQuantity(*inputPP);
-	
-	Read event into outputPtr
-	
-	Replace channel number in appropriate commands
-	
-	outputPtr->length = length of event stored
-}
-
-char readMTrkEvent(unsigned char **inputPP, struct mtrkEvent *outputPtr, char channelNumber) {
 	//Returns non-zero on error
 	
 	outputPtr->deltaTime = readVariableLengthQuantity((char *) *inputPP);
