@@ -6,7 +6,7 @@ make
 cd ../catmidi
 make clean
 make
-cd ../example_inputs
+cd ../example_inputs_1
 
 ../mmltomidi/build/mmltomidi -o ./right_hand_1.midi ./right_hand_1
 ../mmltomidi/build/mmltomidi -o ./right_hand_2.midi ./right_hand_2

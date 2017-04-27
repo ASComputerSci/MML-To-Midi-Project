@@ -1,7 +1,7 @@
 #ifndef MMLFILESTRUCT_H
 #define MMLFILESTRUCT_H
 
-//Necessary for only one copy of the struct definition
+//Necessary for only one copy of the struct definition to exist
 
 struct note {
 	char command;
@@ -11,9 +11,9 @@ struct note {
 
 struct mmlFileStruct {
 	char name[256]; //Null terminated
-	
+
 	struct note notes[16384];
 	int noteCount;
-}; 
+};
 
 #endif

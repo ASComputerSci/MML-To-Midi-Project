@@ -37,7 +37,7 @@ mmlFile:	line
 
 line:	LINE_BREAK
 	|	COMMENT
-	|	TEMPO_SET	
+	|	TEMPO_SET
 	|	INSTRUMENT_SET
 	|	NAME_SET
 	|	MACRO_ASSIGNED
