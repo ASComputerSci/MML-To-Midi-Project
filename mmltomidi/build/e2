@@ -1,0 +1,9 @@
+##Example comment
+
+#name example
+#instrument 0
+#tempo 120
+
+$c cdefgab>c
+
+play r9>$cr9

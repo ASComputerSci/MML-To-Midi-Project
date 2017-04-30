@@ -99,8 +99,8 @@ void replaceSubstring(char *source, char *find, char *replace) {
 	}
 
 	struct note *currentNote = processedMmlFile.notes + processedMmlFile.noteCount;
-	processedMmlFile.notes[processedMmlFile.noteCount].command = 'i';
-	processedMmlFile.notes[processedMmlFile.noteCount++].modifier = instrumentNumber;
+	currentNote->command = 'i';
+	currentNote->modifier = instrumentNumber;
 	processedMmlFile.noteCount++;
 
 	return INSTRUMENT_SET;

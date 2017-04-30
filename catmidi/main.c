@@ -323,6 +323,10 @@ bool correctCallForm(int argc, char *argv[]) {
 		return false;
 	}
 
+	if ((!strcmp(argv[1], "-o")) && (argc < 4)) {
+		return false;
+	}
+
 	return true;
 }
 
